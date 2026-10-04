@@ -26,6 +26,7 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentContactsBinding
 import org.fossify.phone.databinding.FragmentLettersLayoutBinding
+import org.fossify.phone.extensions.distinctByAggregatedContact
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.launchCreateNewContactIntent
 import org.fossify.phone.extensions.setupWithContacts
@@ -97,10 +98,11 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                     allContacts.sort()
                 }
             }
+            allContacts = context.distinctByAggregatedContact(allContacts)
             (activity as MainActivity).cacheContacts()
 
             activity?.runOnUiThread {
-                gotContacts(contacts)
+                gotContacts(allContacts)
                 callback?.invoke()
             }
         }
@@ -188,8 +190,9 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                 binding.fragmentPlaceholder.text = context.getString(R.string.no_contacts_found)
                 binding.fragmentPlaceholder2.text = context.getString(R.string.create_new_contact)
                 ContactsHelper(context).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+                    val distinctContacts = context.distinctByAggregatedContact(contacts)
                     activity?.runOnUiThread {
-                        gotContacts(contacts)
+                        gotContacts(distinctContacts)
                     }
                 }
             }
