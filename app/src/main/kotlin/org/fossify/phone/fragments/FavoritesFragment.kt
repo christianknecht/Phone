@@ -212,14 +212,21 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
 
     private fun setViewType(viewType: Int) {
         val spanCount = context.config.contactsGridColumnCount
+        val currentLayoutManager = binding.fragmentList.layoutManager
 
-        val layoutManager = if (viewType == VIEW_TYPE_GRID) {
+        // Keep the existing layout manager when the view type is unchanged, replacing it resets the scroll position
+        if (viewType == VIEW_TYPE_GRID) {
             binding.letterFastscroller.beGone()
-            MyGridLayoutManager(context, spanCount)
+            if (currentLayoutManager is MyGridLayoutManager) {
+                currentLayoutManager.spanCount = spanCount
+            } else {
+                binding.fragmentList.layoutManager = MyGridLayoutManager(context, spanCount)
+            }
         } else {
             binding.letterFastscroller.beVisible()
-            MyLinearLayoutManager(context)
+            if (currentLayoutManager !is MyLinearLayoutManager) {
+                binding.fragmentList.layoutManager = MyLinearLayoutManager(context)
+            }
         }
-        binding.fragmentList.layoutManager = layoutManager
     }
 }
