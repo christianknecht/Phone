@@ -28,6 +28,7 @@ import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentFavoritesBinding
 import org.fossify.phone.databinding.FragmentLettersLayoutBinding
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.distinctByAggregatedContact
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
@@ -82,7 +83,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                     allContacts.sort()
                 }
             }
-            val favorites = contacts.filter { it.starred == 1 } as ArrayList<Contact>
+            val favorites = context.distinctByAggregatedContact(contacts.filter { it.starred == 1 })
 
             allContacts = if (activity!!.config.isCustomOrderSelected) {
                 sortByCustomOrder(favorites)
