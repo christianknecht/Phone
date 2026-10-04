@@ -60,10 +60,10 @@ fun SimpleActivity.startCallWithConfirmationCheck(contact: Contact) {
             activity = this,
             callee = contact.getNameToDisplay()
         ) {
-            initiateCall(contact) { startCallIntent(it) }
+            initiateCall(contact) { launchCallIntent(it) }
         }
     } else {
-        initiateCall(contact) { startCallIntent(it) }
+        initiateCall(contact) { launchCallIntent(it) }
     }
 }
 
