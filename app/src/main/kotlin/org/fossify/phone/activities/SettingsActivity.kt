@@ -40,6 +40,7 @@ import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
+import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.canLaunchAccountsConfiguration
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.launchAccountsConfiguration
@@ -115,6 +116,7 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupAskSimBeforeCall()
         setupCallsExport()
         setupCallsImport()
         updateTextColors(binding.settingsHolder)
@@ -387,6 +389,17 @@ class SettingsActivity : SimpleActivity() {
             settingsAlwaysShowFullscreenHolder.setOnClickListener {
                 settingsAlwaysShowFullscreen.toggle()
                 config.alwaysShowFullscreen = settingsAlwaysShowFullscreen.isChecked
+            }
+        }
+    }
+
+    private fun setupAskSimBeforeCall() {
+        binding.apply {
+            settingsAskSimBeforeCallHolder.beVisibleIf(areMultipleSIMsAvailable())
+            settingsAskSimBeforeCall.isChecked = config.askSimBeforeCall
+            settingsAskSimBeforeCallHolder.setOnClickListener {
+                settingsAskSimBeforeCall.toggle()
+                config.askSimBeforeCall = settingsAskSimBeforeCall.isChecked
             }
         }
     }

@@ -116,6 +116,12 @@ fun SimpleActivity.getHandleToUse(
                     callback(config.getCustomSIM(phoneNumber))
                 }
 
+                // no SIM remembered for this number: let the user pick one, ignoring the
+                // system default outgoing account
+                config.askSimBeforeCall && areMultipleSIMsAvailable() -> {
+                    showSelectSimDialog(phoneNumber, callback)
+                }
+
                 defaultHandle != null -> callback(defaultHandle)
                 else -> showSelectSimDialog(phoneNumber, callback)
             }

@@ -31,6 +31,10 @@ class Config(context: Context) : BaseConfig(context) {
             .orEmpty()
     }
 
+    var askSimBeforeCall: Boolean
+        get() = prefs.getBoolean(ASK_SIM_BEFORE_CALL, false)
+        set(value) = prefs.edit().putBoolean(ASK_SIM_BEFORE_CALL, value).apply()
+
     fun getSpeedDialValues(): ArrayList<SpeedDial> {
         val speedDialType = object : TypeToken<List<SpeedDial>>() {}.type
         val speedDialValues = Gson().fromJson<ArrayList<SpeedDial>>(speedDial, speedDialType) ?: ArrayList(1)
