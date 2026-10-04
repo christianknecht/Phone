@@ -90,7 +90,7 @@ class ContactsAdapter(
         menu.apply {
             findItem(R.id.cab_call_sim_1).isVisible = hasMultipleSIMs && isOneItemSelected
             findItem(R.id.cab_call_sim_2).isVisible = hasMultipleSIMs && isOneItemSelected
-            findItem(R.id.cab_set_default_sim).isVisible = hasMultipleSIMs && isOneItemSelected
+            findItem(R.id.cab_set_default_sim).isVisible = hasMultipleSIMs
             findItem(R.id.cab_remove_default_sim).isVisible = isOneItemSelected && (activity.config.getCustomSIM(selectedNumber) ?: "") != ""
 
             findItem(R.id.cab_delete).isVisible = showDeleteButton
@@ -246,8 +246,8 @@ class ContactsAdapter(
     }
 
     private fun setDefaultSIM() {
-        val phoneNumber = getSelectedPhoneNumber() ?: return
-        (activity as SimpleActivity).showSetDefaultSIMDialog(phoneNumber) { finishActMode() }
+        val phoneNumbers = getSelectedItems().mapNotNull { it.getPrimaryNumber() }
+        (activity as SimpleActivity).showSetDefaultSIMDialog(phoneNumbers) { finishActMode() }
     }
 
     private fun removeDefaultSIM() {

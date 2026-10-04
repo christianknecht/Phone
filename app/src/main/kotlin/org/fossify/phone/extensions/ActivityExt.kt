@@ -20,9 +20,12 @@ import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.activities.SimpleActivity
 
-fun SimpleActivity.showSetDefaultSIMDialog(phoneNumber: String, callback: () -> Unit = {}) {
+fun SimpleActivity.showSetDefaultSIMDialog(
+    phoneNumbers: List<String>,
+    callback: () -> Unit = {}
+) {
     val sims = getAvailableSIMCardLabels()
-    if (sims.isEmpty()) {
+    if (sims.isEmpty() || phoneNumbers.isEmpty()) {
         return
     }
 
@@ -30,10 +33,17 @@ fun SimpleActivity.showSetDefaultSIMDialog(phoneNumber: String, callback: () -> 
         RadioItem(index, "${index + 1} - ${sim.label}")
     } as ArrayList<RadioItem>
 
-    val currentHandle = config.getCustomSIM(phoneNumber)
-    val checkedItemId = sims.indexOfFirst { it.handle == currentHandle }
+    // preselect the current SIM only if every selected number already shares it
+    val currentHandles = phoneNumbers.map { config.getCustomSIM(it) }.distinct()
+    val checkedItemId = if (currentHandles.size == 1) {
+        sims.indexOfFirst { it.handle == currentHandles.first() }
+    } else {
+        -1
+    }
+
     RadioGroupDialog(this, items, checkedItemId, R.string.set_default_sim) { selected ->
-        config.saveCustomSIM(phoneNumber, sims[selected as Int].handle)
+        val handle = sims[selected as Int].handle
+        phoneNumbers.forEach { config.saveCustomSIM(it, handle) }
         callback()
     }
 }

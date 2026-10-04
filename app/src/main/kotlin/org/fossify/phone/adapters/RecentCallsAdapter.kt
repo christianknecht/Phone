@@ -235,7 +235,7 @@ class RecentCallsAdapter(
 
     private fun setDefaultSIM() {
         val phoneNumber = getSelectedPhoneNumber() ?: return
-        (activity as SimpleActivity).showSetDefaultSIMDialog(phoneNumber) { finishActMode() }
+        (activity as SimpleActivity).showSetDefaultSIMDialog(listOf(phoneNumber)) { finishActMode() }
     }
 
     private fun removeDefaultSIM() {
