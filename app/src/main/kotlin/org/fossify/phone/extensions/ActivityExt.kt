@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
+import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.isPackageInstalled
 import org.fossify.commons.extensions.launchActivityIntent
 import org.fossify.commons.extensions.launchViewContactIntent
@@ -14,8 +15,38 @@ import org.fossify.commons.helpers.ON_CLICK_CALL_CONTACT
 import org.fossify.commons.helpers.ON_CLICK_VIEW_CONTACT
 import org.fossify.commons.helpers.SimpleContactsHelper
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.models.RadioItem
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.R
 import org.fossify.phone.activities.SimpleActivity
+
+fun SimpleActivity.showSetDefaultSIMDialog(
+    phoneNumbers: List<String>,
+    callback: () -> Unit = {}
+) {
+    val sims = getAvailableSIMCardLabels()
+    if (sims.isEmpty() || phoneNumbers.isEmpty()) {
+        return
+    }
+
+    val items = sims.mapIndexed { index, sim ->
+        RadioItem(index, "${index + 1} - ${sim.label}")
+    } as ArrayList<RadioItem>
+
+    // preselect the current SIM only if every selected number already shares it
+    val currentHandles = phoneNumbers.map { config.getCustomSIM(it) }.distinct()
+    val checkedItemId = if (currentHandles.size == 1) {
+        sims.indexOfFirst { it.handle == currentHandles.first() }
+    } else {
+        -1
+    }
+
+    RadioGroupDialog(this, items, checkedItemId, R.string.set_default_sim) { selected ->
+        val handle = sims[selected as Int].handle
+        phoneNumbers.forEach { config.saveCustomSIM(it, handle) }
+        callback()
+    }
+}
 
 fun SimpleActivity.handleGenericContactClick(contact: Contact) {
     when (config.onContactClick) {

@@ -58,6 +58,7 @@ import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getDayCode
+import org.fossify.phone.extensions.showSetDefaultSIMDialog
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
@@ -109,6 +110,7 @@ class RecentCallsAdapter(
         menu.apply {
             findItem(R.id.cab_call_sim_1).isVisible = hasMultipleSIMs && isOneItemSelected
             findItem(R.id.cab_call_sim_2).isVisible = hasMultipleSIMs && isOneItemSelected
+            findItem(R.id.cab_set_default_sim).isVisible = hasMultipleSIMs && isOneItemSelected
             findItem(R.id.cab_remove_default_sim).isVisible = isOneItemSelected && (activity.config.getCustomSIM(selectedNumber) ?: "") != ""
 
             findItem(R.id.cab_block_number).title = activity.addLockedLabelIfNeeded(R.string.block_number)
@@ -128,6 +130,7 @@ class RecentCallsAdapter(
         when (id) {
             R.id.cab_call_sim_1 -> callContact(true)
             R.id.cab_call_sim_2 -> callContact(false)
+            R.id.cab_set_default_sim -> setDefaultSIM()
             R.id.cab_remove_default_sim -> removeDefaultSIM()
             R.id.cab_block_number -> tryBlocking()
             R.id.cab_add_number -> addNumberToContact()
@@ -228,6 +231,11 @@ class RecentCallsAdapter(
         val name = getSelectedName() ?: return
 
         (activity as SimpleActivity).startCallWithConfirmationCheck(phoneNumber, name)
+    }
+
+    private fun setDefaultSIM() {
+        val phoneNumber = getSelectedPhoneNumber() ?: return
+        (activity as SimpleActivity).showSetDefaultSIMDialog(listOf(phoneNumber)) { finishActMode() }
     }
 
     private fun removeDefaultSIM() {
@@ -380,6 +388,7 @@ class RecentCallsAdapter(
                 findItem(R.id.cab_show_call_details).isVisible = !call.isUnknownNumber
                 findItem(R.id.cab_block_number).title = activity.addLockedLabelIfNeeded(R.string.block_number)
                 findItem(R.id.cab_block_number).isVisible = isNougatPlus() && !call.isUnknownNumber
+                findItem(R.id.cab_set_default_sim).isVisible = areMultipleSIMsAvailable && !call.isUnknownNumber
                 findItem(R.id.cab_remove_default_sim).isVisible = (activity.config.getCustomSIM(selectedNumber) ?: "") != "" && !call.isUnknownNumber
             }
 
@@ -441,6 +450,12 @@ class RecentCallsAdapter(
                     R.id.cab_copy_number -> {
                         executeItemMenuOperation(callId) {
                             copyNumber()
+                        }
+                    }
+
+                    R.id.cab_set_default_sim -> {
+                        executeItemMenuOperation(callId) {
+                            setDefaultSIM()
                         }
                     }
 

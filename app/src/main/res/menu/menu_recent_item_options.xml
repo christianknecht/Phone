@@ -32,6 +32,9 @@
         android:icon="@drawable/ic_info_vector"
         android:title="@string/show_call_details" />
     <item
+        android:id="@+id/cab_set_default_sim"
+        android:title="@string/set_default_sim" />
+    <item
         android:id="@+id/cab_remove_default_sim"
         android:title="@string/unset_default_sim" />
     <item

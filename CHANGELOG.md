@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Option to set the default SIM from the contact and call log menus ([#912])
 
 ## [1.11.1] - 2026-02-01
 ### Changed
@@ -271,6 +273,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#631]: https://github.com/FossifyOrg/Phone/issues/631
 [#645]: https://github.com/FossifyOrg/Phone/issues/645
 [#696]: https://github.com/FossifyOrg/Phone/issues/696
+[#912]: https://github.com/FossifyOrg/Phone/issues/912
 
 [Unreleased]: https://github.com/FossifyOrg/Phone/compare/1.11.1...HEAD
 [1.11.1]: https://github.com/FossifyOrg/Phone/compare/1.11.0...1.11.1
