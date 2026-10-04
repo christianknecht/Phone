@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
+import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.isPackageInstalled
 import org.fossify.commons.extensions.launchActivityIntent
 import org.fossify.commons.extensions.launchViewContactIntent
@@ -14,8 +15,28 @@ import org.fossify.commons.helpers.ON_CLICK_CALL_CONTACT
 import org.fossify.commons.helpers.ON_CLICK_VIEW_CONTACT
 import org.fossify.commons.helpers.SimpleContactsHelper
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.models.RadioItem
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.R
 import org.fossify.phone.activities.SimpleActivity
+
+fun SimpleActivity.showSetDefaultSIMDialog(phoneNumber: String, callback: () -> Unit = {}) {
+    val sims = getAvailableSIMCardLabels()
+    if (sims.isEmpty()) {
+        return
+    }
+
+    val items = sims.mapIndexed { index, sim ->
+        RadioItem(index, "${index + 1} - ${sim.label}")
+    } as ArrayList<RadioItem>
+
+    val currentHandle = config.getCustomSIM(phoneNumber)
+    val checkedItemId = sims.indexOfFirst { it.handle == currentHandle }
+    RadioGroupDialog(this, items, checkedItemId, R.string.set_default_sim) { selected ->
+        config.saveCustomSIM(phoneNumber, sims[selected as Int].handle)
+        callback()
+    }
+}
 
 fun SimpleActivity.handleGenericContactClick(contact: Contact) {
     when (config.onContactClick) {

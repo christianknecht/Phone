@@ -33,6 +33,7 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSim
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.showSetDefaultSIMDialog
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.interfaces.RefreshItemsListener
 import java.util.Collections
@@ -89,6 +90,7 @@ class ContactsAdapter(
         menu.apply {
             findItem(R.id.cab_call_sim_1).isVisible = hasMultipleSIMs && isOneItemSelected
             findItem(R.id.cab_call_sim_2).isVisible = hasMultipleSIMs && isOneItemSelected
+            findItem(R.id.cab_set_default_sim).isVisible = hasMultipleSIMs && isOneItemSelected
             findItem(R.id.cab_remove_default_sim).isVisible = isOneItemSelected && (activity.config.getCustomSIM(selectedNumber) ?: "") != ""
 
             findItem(R.id.cab_delete).isVisible = showDeleteButton
@@ -111,6 +113,7 @@ class ContactsAdapter(
             R.id.cab_block_unblock_contact -> tryBlockingUnblocking()
             R.id.cab_call_sim_1 -> callContact(true)
             R.id.cab_call_sim_2 -> callContact(false)
+            R.id.cab_set_default_sim -> setDefaultSIM()
             R.id.cab_remove_default_sim -> removeDefaultSIM()
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_send_sms -> sendSMS()
@@ -240,6 +243,11 @@ class ContactsAdapter(
     private fun callContact(useSimOne: Boolean) {
         val number = getSelectedPhoneNumber() ?: return
         activity.callContactWithSim(number, useSimOne)
+    }
+
+    private fun setDefaultSIM() {
+        val phoneNumber = getSelectedPhoneNumber() ?: return
+        (activity as SimpleActivity).showSetDefaultSIMDialog(phoneNumber) { finishActMode() }
     }
 
     private fun removeDefaultSIM() {
