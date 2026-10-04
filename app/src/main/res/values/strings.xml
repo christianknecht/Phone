@@ -83,7 +83,6 @@
     <string name="ask_sim_before_call">Ask which SIM to use before every call</string>
     <string name="per_sim_ringtones">Use a different ringtone per SIM</string>
     <string name="sim_ringtones">SIM ringtones</string>
-    <string name="default_ringtone">Default ringtone</string>
     <string name="hide_dialpad_numbers">Hide dialpad numbers</string>
     <string name="export_call_history">Export call history</string>
     <string name="import_call_history">Import call history</string>
