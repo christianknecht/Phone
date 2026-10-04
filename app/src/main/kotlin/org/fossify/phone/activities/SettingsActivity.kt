@@ -1,10 +1,15 @@
 package org.fossify.phone.activities
 
+import android.app.Activity
 import android.content.Intent
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Bundle
+import android.telecom.PhoneAccountHandle
 import android.view.Menu
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.IntentCompat
+import androidx.core.net.toUri
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.fossify.commons.activities.ManageBlockedNumbersActivity
@@ -40,8 +45,10 @@ import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
+import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.canLaunchAccountsConfiguration
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getAvailableSIMCardLabels
 import org.fossify.phone.extensions.launchAccountsConfiguration
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.models.RecentCall
@@ -75,6 +82,19 @@ class SettingsActivity : SimpleActivity() {
             RecentsHelper(this).getRecentCalls(queryLimit = Int.MAX_VALUE) { recents ->
                 exportCallHistory(recents, uri)
             }
+        }
+    }
+
+    // which SIM the system ringtone picker is currently choosing a ringtone for
+    private var ringtonePickerSimHandle: PhoneAccountHandle? = null
+    private val pickRingtone = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val handle = ringtonePickerSimHandle
+        ringtonePickerSimHandle = null
+        if (handle != null && result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.let {
+                IntentCompat.getParcelableExtra(it, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            }
+            config.setSimRingtone(handle, uri?.toString())
         }
     }
 
@@ -115,6 +135,8 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupPerSimRingtones()
+        setupManageSimRingtones()
         setupCallsExport()
         setupCallsImport()
         updateTextColors(binding.settingsHolder)
@@ -388,6 +410,57 @@ class SettingsActivity : SimpleActivity() {
                 settingsAlwaysShowFullscreen.toggle()
                 config.alwaysShowFullscreen = settingsAlwaysShowFullscreen.isChecked
             }
+        }
+    }
+
+    private fun setupPerSimRingtones() {
+        // setSilenceCall, used to suppress the system ringer, is API 29+, so gate on Q+ and dual SIM
+        val isSupported = isQPlus() && areMultipleSIMsAvailable()
+        binding.apply {
+            settingsPerSimRingtonesHolder.beVisibleIf(isSupported)
+            settingsPerSimRingtones.isChecked = config.perSimRingtonesEnabled
+            settingsPerSimRingtonesHolder.setOnClickListener {
+                settingsPerSimRingtones.toggle()
+                config.perSimRingtonesEnabled = settingsPerSimRingtones.isChecked
+                updateManageSimRingtonesVisibility()
+            }
+        }
+    }
+
+    private fun setupManageSimRingtones() {
+        updateManageSimRingtonesVisibility()
+        binding.settingsManageSimRingtonesHolder.setOnClickListener {
+            val sims = getAvailableSIMCardLabels()
+            if (sims.isEmpty()) {
+                return@setOnClickListener
+            }
+
+            val items = sims.mapIndexed { index, sim -> RadioItem(index, sim.label) } as ArrayList<RadioItem>
+            RadioGroupDialog(this, items) { selected ->
+                launchRingtonePicker(sims[selected as Int].handle)
+            }
+        }
+    }
+
+    private fun updateManageSimRingtonesVisibility() {
+        val isVisible = isQPlus() && areMultipleSIMsAvailable() && config.perSimRingtonesEnabled
+        binding.settingsManageSimRingtonesHolder.beVisibleIf(isVisible)
+    }
+
+    private fun launchRingtonePicker(handle: PhoneAccountHandle) {
+        ringtonePickerSimHandle = handle
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_RINGTONE)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, config.getSimRingtone(handle)?.toUri())
+        }
+
+        try {
+            pickRingtone.launch(intent)
+        } catch (e: Exception) {
+            ringtonePickerSimHandle = null
+            showErrorToast(e)
         }
     }
 

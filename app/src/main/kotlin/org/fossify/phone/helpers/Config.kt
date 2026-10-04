@@ -135,4 +135,25 @@ class Config(context: Context) : BaseConfig(context) {
     var alwaysShowFullscreen: Boolean
         get() = prefs.getBoolean(ALWAYS_SHOW_FULLSCREEN, false)
         set(alwaysShowFullscreen) = prefs.edit().putBoolean(ALWAYS_SHOW_FULLSCREEN, alwaysShowFullscreen).apply()
+
+    var perSimRingtonesEnabled: Boolean
+        get() = prefs.getBoolean(PER_SIM_RINGTONES_ENABLED, false)
+        set(value) = prefs.edit { putBoolean(PER_SIM_RINGTONES_ENABLED, value) }
+
+    fun getSimRingtone(handle: PhoneAccountHandle): String? {
+        return prefs.getString(SIM_RINGTONE_PREFIX + getHandleKey(handle), null)
+    }
+
+    fun setSimRingtone(handle: PhoneAccountHandle, uri: String?) {
+        val key = SIM_RINGTONE_PREFIX + getHandleKey(handle)
+        prefs.edit {
+            if (uri.isNullOrEmpty()) remove(key) else putString(key, uri)
+        }
+    }
+
+    // stable string identity for a SIM, matching how PhoneAccountHandleModel is built
+    private fun getHandleKey(handle: PhoneAccountHandle): String {
+        val componentName = handle.componentName
+        return "${componentName.packageName}/${componentName.className}/${handle.id}"
+    }
 }
