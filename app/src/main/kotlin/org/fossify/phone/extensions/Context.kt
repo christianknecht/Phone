@@ -6,14 +6,22 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.content.Context.KEYGUARD_SERVICE
 import android.content.Intent
+import android.database.Cursor
 import android.media.AudioManager
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.PowerManager
+import android.provider.ContactsContract.PhoneLookup
+import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
+import androidx.core.net.toUri
+import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.launchActivityIntent
 import org.fossify.commons.extensions.telecomManager
 import org.fossify.commons.helpers.KEY_PHONE
+import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.helpers.isQPlus
 import org.fossify.phone.helpers.Config
 import org.fossify.phone.models.SIMAccount
 
@@ -55,6 +63,67 @@ fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
     }
 
     return simAccounts
+}
+
+/**
+ * Whether we should take over ringing for this call: the per-SIM ringtones feature is on (Q+, since
+ * suppressing the system ringer needs setSilenceCall, API 29+) and the caller has no contact-specific
+ * ringtone (contact ringtones win).
+ *
+ * Deliberately independent of the SIM: a CallScreeningService is NOT given the PhoneAccountHandle
+ * (getAccountHandle() is null there) - only the InCallService is - yet both must reach the same
+ * "take over the ringer?" decision, otherwise the screening service fails to silence and the system
+ * ringtone plays on top of ours. Which ringtone to play (per SIM) is decided later, in the
+ * InCallService, where the handle is available.
+ */
+fun Context.shouldPlayCustomRingtone(number: String?): Boolean {
+    if (!isQPlus() || !config.perSimRingtonesEnabled) {
+        return false
+    }
+
+    return number == null || !contactHasCustomRingtone(number)
+}
+
+/**
+ * The ringtone the InCallService should play once the system ringer has been silenced: the calling
+ * SIM's configured ringtone, or the system default ringtone as a fallback (we already silenced the
+ * system, so we must play something). Null when we should not take over ringing at all.
+ */
+fun Context.resolveCustomRingtoneUri(number: String?, handle: PhoneAccountHandle?): Uri? {
+    if (!shouldPlayCustomRingtone(number)) {
+        return null
+    }
+
+    val simRingtone = handle?.let { config.getSimRingtone(it) }
+    if (!simRingtone.isNullOrEmpty()) {
+        return simRingtone.toUri()
+    }
+
+    return RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_RINGTONE)
+        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+}
+
+private fun Context.contactHasCustomRingtone(number: String): Boolean {
+    if (!hasPermission(PERMISSION_READ_CONTACTS)) {
+        return false
+    }
+
+    val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+    return try {
+        contentResolver.query(uri, arrayOf(PhoneLookup.CUSTOM_RINGTONE), null, null, null)
+            ?.use { cursor -> cursor.hasNonEmptyRingtone() } ?: false
+    } catch (ignored: Exception) {
+        false
+    }
+}
+
+private fun Cursor.hasNonEmptyRingtone(): Boolean {
+    while (moveToNext()) {
+        if (!getString(0).isNullOrEmpty()) {
+            return true
+        }
+    }
+    return false
 }
 
 @SuppressLint("MissingPermission")
