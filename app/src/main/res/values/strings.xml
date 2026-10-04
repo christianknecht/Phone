@@ -79,6 +79,7 @@
     <string name="disable_proximity_sensor">Disable proximity sensor during calls</string>
     <string name="disable_swipe_to_answer">Replace swiping at responding to incoming calls with clicking</string>
     <string name="show_incoming_calls_full_screen">Always display incoming calls on full screen</string>
+    <string name="ask_sim_before_call">Ask which SIM to use before every call</string>
     <string name="per_sim_ringtones">Use a different ringtone per SIM</string>
     <string name="sim_ringtones">SIM ringtones</string>
     <string name="default_ringtone">Default ringtone</string>

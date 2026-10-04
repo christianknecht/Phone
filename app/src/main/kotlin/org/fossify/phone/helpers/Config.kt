@@ -136,6 +136,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(ALWAYS_SHOW_FULLSCREEN, false)
         set(alwaysShowFullscreen) = prefs.edit().putBoolean(ALWAYS_SHOW_FULLSCREEN, alwaysShowFullscreen).apply()
 
+    var askSimBeforeCall: Boolean
+        get() = prefs.getBoolean(ASK_SIM_BEFORE_CALL, true)
+        set(value) = prefs.edit { putBoolean(ASK_SIM_BEFORE_CALL, value) }
+
     var perSimRingtonesEnabled: Boolean
         get() = prefs.getBoolean(PER_SIM_RINGTONES_ENABLED, false)
         set(value) = prefs.edit { putBoolean(PER_SIM_RINGTONES_ENABLED, value) }

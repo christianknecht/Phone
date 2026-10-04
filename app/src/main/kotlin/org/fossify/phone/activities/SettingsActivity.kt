@@ -135,6 +135,7 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupAskSimBeforeCall()
         setupPerSimRingtones()
         setupManageSimRingtones()
         setupCallsExport()
@@ -409,6 +410,17 @@ class SettingsActivity : SimpleActivity() {
             settingsAlwaysShowFullscreenHolder.setOnClickListener {
                 settingsAlwaysShowFullscreen.toggle()
                 config.alwaysShowFullscreen = settingsAlwaysShowFullscreen.isChecked
+            }
+        }
+    }
+
+    private fun setupAskSimBeforeCall() {
+        binding.apply {
+            settingsAskSimBeforeCallHolder.beVisibleIf(areMultipleSIMsAvailable())
+            settingsAskSimBeforeCall.isChecked = config.askSimBeforeCall
+            settingsAskSimBeforeCallHolder.setOnClickListener {
+                settingsAskSimBeforeCall.toggle()
+                config.askSimBeforeCall = settingsAskSimBeforeCall.isChecked
             }
         }
     }

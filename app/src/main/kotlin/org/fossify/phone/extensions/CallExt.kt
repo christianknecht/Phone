@@ -60,10 +60,10 @@ fun SimpleActivity.startCallWithConfirmationCheck(contact: Contact) {
             activity = this,
             callee = contact.getNameToDisplay()
         ) {
-            initiateCall(contact) { launchCallIntent(it) }
+            initiateCall(contact) { startCallIntent(it) }
         }
     } else {
-        initiateCall(contact) { launchCallIntent(it) }
+        initiateCall(contact) { startCallIntent(it) }
     }
 }
 
@@ -114,6 +114,12 @@ fun SimpleActivity.getHandleToUse(
 
                 config.getCustomSIM(phoneNumber) != null -> {
                     callback(config.getCustomSIM(phoneNumber))
+                }
+
+                // no SIM remembered for this number: let the user pick one, ignoring the
+                // system default outgoing account
+                config.askSimBeforeCall && areMultipleSIMsAvailable() -> {
+                    showSelectSimDialog(phoneNumber, callback)
                 }
 
                 defaultHandle != null -> callback(defaultHandle)

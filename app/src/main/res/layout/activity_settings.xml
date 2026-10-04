@@ -371,6 +371,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_ask_sim_before_call_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_ask_sim_before_call"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ask_sim_before_call" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_per_sim_ringtones_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"
