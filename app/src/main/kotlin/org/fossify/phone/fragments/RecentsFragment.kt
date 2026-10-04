@@ -10,7 +10,6 @@ import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.underlineText
-import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.PERMISSION_READ_CALL_LOG
 import org.fossify.commons.helpers.SMT_PRIVATE
@@ -27,6 +26,7 @@ import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.helpers.RecentsHelper
+import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
 import org.fossify.phone.models.CallLogItem
 import org.fossify.phone.models.RecentCall
@@ -222,7 +222,7 @@ class RecentsFragment(
             return
         }
 
-        ContactsHelper(context).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+        SharedContactsLoader.getContacts(context) { contacts ->
             ensureBackgroundThread {
                 val privateContacts = getPrivateContacts()
                 val updatedCalls = updateNamesIfEmpty(

@@ -13,7 +13,6 @@ import org.fossify.commons.extensions.getColorStateList
 import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
-import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.helpers.Converters
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
@@ -32,6 +31,7 @@ import org.fossify.phone.extensions.distinctByAggregatedContact
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
 
 class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPagerFragment<MyViewPagerFragment.LettersInnerBinding>(context, attributeSet),
@@ -70,7 +70,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     }
 
     override fun refreshItems(invalidate: Boolean, callback: (() -> Unit)?) {
-        ContactsHelper(context).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+        SharedContactsLoader.getContacts(context) { contacts ->
             allContacts = contacts
 
             if (SMT_PRIVATE !in context.baseConfig.ignoredContactSources) {

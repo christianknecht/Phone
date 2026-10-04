@@ -36,7 +36,7 @@ class RecentsHelper(private val context: Context) {
             return
         }
 
-        ContactsHelper(context).getContacts(getAll = true, showOnlyContactsWithNumbers = true) { contacts ->
+        SharedContactsLoader.getContacts(context, getAll = true) { contacts ->
             ensureBackgroundThread {
                 val privateContacts = MyContactsContentProvider.getContacts(context, privateCursor)
                 if (privateContacts.isNotEmpty()) {

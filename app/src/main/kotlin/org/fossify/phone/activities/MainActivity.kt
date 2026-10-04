@@ -42,6 +42,7 @@ import org.fossify.phone.fragments.MyViewPagerFragment
 import org.fossify.phone.fragments.RecentsFragment
 import org.fossify.phone.helpers.OPEN_DIAL_PAD_AT_LAUNCH
 import org.fossify.phone.helpers.RecentsHelper
+import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.helpers.tabsList
 import org.fossify.phone.models.Events
 import org.greenrobot.eventbus.EventBus
@@ -493,10 +494,11 @@ class MainActivity : SimpleActivity() {
     }
 
     fun refreshFragments() {
-        cacheContacts()
         getContactsFragment()?.refreshItems()
         getFavoritesFragment()?.refreshItems()
         getRecentsFragment()?.refreshItems()
+        // after the tabs, so that this full load waits for the filtered one they display
+        cacheContacts()
     }
 
     private fun getAllFragments(): ArrayList<MyViewPagerFragment<*>?> {
@@ -617,7 +619,7 @@ class MainActivity : SimpleActivity() {
 
     fun cacheContacts() {
         val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-        ContactsHelper(this).getContacts(getAll = true, showOnlyContactsWithNumbers = true) { contacts ->
+        SharedContactsLoader.getContacts(this, getAll = true) { contacts ->
             if (SMT_PRIVATE !in config.ignoredContactSources) {
                 val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
                 if (privateContacts.isNotEmpty()) {
