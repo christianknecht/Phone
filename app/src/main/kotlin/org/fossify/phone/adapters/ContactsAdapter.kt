@@ -9,6 +9,7 @@ import android.text.TextUtils
 import android.util.TypedValue
 import android.view.*
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.GridLayoutManager
@@ -31,11 +32,14 @@ import org.fossify.commons.views.MyRecyclerView
 import org.fossify.phone.R
 import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.SimpleActivity
+import org.fossify.phone.databinding.ItemContactWithAccountsBinding
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSim
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.showSetDefaultSIMDialog
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.helpers.ContactAccounts
+import org.fossify.phone.helpers.ContactAccountsHelper
 import org.fossify.phone.interfaces.RefreshItemsListener
 import java.util.Collections
 
@@ -61,6 +65,15 @@ class ContactsAdapter(
     var onDragEndListener: (() -> Unit)? = null
     var onSpanCountListener: (Int) -> Unit = {}
 
+    /** When set, list rows show the accounts of each contact under its name (never in grid mode). */
+    var contactAccounts: ContactAccounts? = null
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
 
     init {
         setupDragListener(true)
@@ -148,7 +161,11 @@ class ContactsAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return viewType
+        return if (viewType == VIEW_TYPE_LIST && contactAccounts != null) {
+            VIEW_TYPE_LIST_WITH_ACCOUNTS
+        } else {
+            viewType
+        }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -443,10 +460,51 @@ class ContactsAdapter(
                 }
             }
 
+            itemContactAccounts?.let { setupAccounts(it, contact) }
+
             if (!activity.isDestroyed) {
                 SimpleContactsHelper(root.context).loadContactImage(contact.photoUri, itemContactImage, contact.getNameToDisplay())
             }
         }
+    }
+
+    // one icon per raw contact, not merged, so two raw contacts in the same account show its icon twice
+    private fun setupAccounts(container: LinearLayout, contact: Contact) {
+        val accountTypes = contactAccounts?.getAccountTypes(contact).orEmpty()
+        container.beVisibleIf(accountTypes.isNotEmpty())
+        container.removeAllViews()
+        if (accountTypes.isEmpty()) {
+            return
+        }
+
+        val iconSize = fontSize.toInt()
+        val iconMargin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.small_margin)
+        val icons = accountTypes.map { ContactAccountsHelper.getAccountIcon(activity, it) }
+        icons.take(MAX_ACCOUNT_ICONS).forEach { icon ->
+            val imageView = ImageView(activity).apply {
+                layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply { marginEnd = iconMargin }
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                setImageDrawable(icon.newDrawable())
+                if (icon.isGeneric) {
+                    applyColorFilter(textColor)
+                }
+            }
+            container.addView(imageView)
+        }
+
+        val hiddenCount = icons.size - MAX_ACCOUNT_ICONS
+        if (hiddenCount > 0) {
+            val moreView = TextView(activity).apply {
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                text = activity.getString(R.string.more_contact_accounts, hiddenCount)
+                setTextColor(textColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * MORE_ACCOUNTS_TEXT_RATIO)
+                includeFontPadding = false
+            }
+            container.addView(moreView)
+        }
+
+        container.contentDescription = icons.joinToString(", ") { it.label }
     }
 
     override fun onRowMoved(fromPosition: Int, toPosition: Int) {
@@ -498,6 +556,7 @@ class ContactsAdapter(
             fun getByItemViewType(viewType: Int): Binding {
                 return when (viewType) {
                     VIEW_TYPE_GRID -> ItemContactGrid
+                    VIEW_TYPE_LIST_WITH_ACCOUNTS -> ItemContactWithAccounts
                     else -> ItemContact
                 }
             }
@@ -517,6 +576,21 @@ class ContactsAdapter(
             }
         }
 
+        data object ItemContactWithAccounts : Binding {
+            override fun inflate(
+                layoutInflater: LayoutInflater,
+                viewGroup: ViewGroup,
+                attachToRoot: Boolean
+            ): ItemViewBinding {
+                val binding = ItemContactWithAccountsBinding.inflate(layoutInflater, viewGroup, attachToRoot)
+                return ItemContactWithAccountsBindingAdapter(binding)
+            }
+
+            override fun bind(view: View): ItemViewBinding {
+                return ItemContactWithAccountsBindingAdapter(ItemContactWithAccountsBinding.bind(view))
+            }
+        }
+
         data object ItemContact : Binding {
             override fun inflate(layoutInflater: LayoutInflater, viewGroup: ViewGroup, attachToRoot: Boolean): ItemViewBinding {
                 return ItemContactBindingAdapter(ItemContactWithoutNumberBinding.inflate(layoutInflater, viewGroup, attachToRoot))
@@ -533,6 +607,8 @@ class ContactsAdapter(
         val itemContactImage: ImageView
         val itemContactFrame: ConstraintLayout
         val dragHandleIcon: ImageView
+        val itemContactAccounts: LinearLayout?
+            get() = null
     }
 
     private class ItemContactGridBindingAdapter(val binding: ItemContactWithoutNumberGridBinding) : ItemViewBinding {
@@ -544,6 +620,16 @@ class ContactsAdapter(
         override fun getRoot(): View = binding.root
     }
 
+    private class ItemContactWithAccountsBindingAdapter(val binding: ItemContactWithAccountsBinding) : ItemViewBinding {
+        override val itemContactName = binding.itemContactName
+        override val itemContactImage = binding.itemContactImage
+        override val itemContactFrame = binding.itemContactFrame
+        override val dragHandleIcon = binding.dragHandleIcon
+        override val itemContactAccounts = binding.itemContactAccounts
+
+        override fun getRoot(): View = binding.root
+    }
+
     private class ItemContactBindingAdapter(val binding: ItemContactWithoutNumberBinding) : ItemViewBinding {
         override val itemContactName = binding.itemContactName
         override val itemContactImage = binding.itemContactImage
@@ -551,5 +637,12 @@ class ContactsAdapter(
         override val dragHandleIcon = binding.dragHandleIcon
 
         override fun getRoot(): View = binding.root
+    }
+
+    private companion object {
+        // must not clash with the commons view types (VIEW_TYPE_GRID, VIEW_TYPE_LIST, VIEW_TYPE_UNEVEN_GRID)
+        const val VIEW_TYPE_LIST_WITH_ACCOUNTS = 100
+        const val MAX_ACCOUNT_ICONS = 5
+        const val MORE_ACCOUNTS_TEXT_RATIO = 0.8f
     }
 }

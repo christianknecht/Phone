@@ -27,6 +27,8 @@ import org.fossify.phone.extensions.getFavoriteContacts
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.helpers.ContactAccounts
+import org.fossify.phone.helpers.ContactAccountsHelper
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
 
@@ -34,6 +36,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     RefreshItemsListener {
     private lateinit var binding: FragmentLettersLayoutBinding
     private var allContacts = ArrayList<Contact>()
+    private var accounts: ContactAccounts? = null
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -68,8 +71,10 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     override fun refreshItems(invalidate: Boolean, callback: (() -> Unit)?) {
         SharedContactsLoader.getContacts(context) { contacts ->
             allContacts = context.getFavoriteContacts(contacts)
+            val contactAccounts = ContactAccountsHelper.getContactAccounts(context)
 
             activity?.runOnUiThread {
+                accounts = contactAccounts
                 gotContacts(allContacts)
                 callback?.invoke()
             }
@@ -111,6 +116,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                 profileIconClick = {
                     activity?.startContactDetailsIntent(it as Contact)
                 }).apply {
+                contactAccounts = accounts
                 binding.fragmentList.adapter = this
 
                 onDragEndListener = {
@@ -133,6 +139,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
             }
         } else {
             currAdapter.viewType = viewType
+            currAdapter.contactAccounts = accounts
             currAdapter.updateItems(allContacts)
         }
     }

@@ -31,6 +31,8 @@ import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.launchCreateNewContactIntent
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.helpers.ContactAccounts
+import org.fossify.phone.helpers.ContactAccountsHelper
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
 
@@ -38,6 +40,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
     RefreshItemsListener {
     private lateinit var binding: FragmentLettersLayoutBinding
     private var allContacts = ArrayList<Contact>()
+    private var accounts: ContactAccounts? = null
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -101,8 +104,10 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
             }
             allContacts = context.distinctByAggregatedContact(allContacts)
             (activity as MainActivity).cacheContacts()
+            val contactAccounts = ContactAccountsHelper.getContactAccounts(context)
 
             activity?.runOnUiThread {
+                accounts = contactAccounts
                 gotContacts(allContacts)
                 callback?.invoke()
             }
@@ -137,6 +142,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                         activity?.startContactDetailsIntent(it as Contact)
                     }
                 ).apply {
+                    contactAccounts = accounts
                     binding.fragmentList.adapter = this
                 }
 
@@ -144,7 +150,10 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                     binding.fragmentList.scheduleLayoutAnimation()
                 }
             } else {
-                (binding.fragmentList.adapter as ContactsAdapter).updateItems(contacts)
+                (binding.fragmentList.adapter as ContactsAdapter).apply {
+                    contactAccounts = accounts
+                    updateItems(contacts)
+                }
             }
         }
     }

@@ -183,6 +183,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_show_contact_accounts_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_show_contact_accounts"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/show_contact_accounts" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_format_phone_numbers_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"

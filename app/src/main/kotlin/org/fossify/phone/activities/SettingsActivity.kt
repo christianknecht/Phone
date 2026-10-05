@@ -129,6 +129,7 @@ class SettingsActivity : SimpleActivity() {
         setupGroupSubsequentCalls()
         setupShowFavoritesInCallHistory()
         setupStartNameWithSurname()
+        setupShowContactAccounts()
         setupFormatPhoneNumbers()
         setupDialpadVibrations()
         setupDialpadNumbers()
@@ -347,6 +348,14 @@ class SettingsActivity : SimpleActivity() {
                 settingsStartNameWithSurname.toggle()
                 config.startNameWithSurname = settingsStartNameWithSurname.isChecked
             }
+        }
+    }
+
+    private fun setupShowContactAccounts() {
+        binding.settingsShowContactAccounts.isChecked = config.showContactAccounts
+        binding.settingsShowContactAccountsHolder.setOnClickListener {
+            binding.settingsShowContactAccounts.toggle()
+            config.showContactAccounts = binding.settingsShowContactAccounts.isChecked
         }
     }
 

@@ -128,6 +128,10 @@ class Config(context: Context) : BaseConfig(context) {
         set(showFavoritesInCallHistory) = prefs.edit()
             .putBoolean(SHOW_FAVORITES_IN_CALL_HISTORY, showFavoritesInCallHistory).apply()
 
+    var showContactAccounts: Boolean
+        get() = prefs.getBoolean(SHOW_CONTACT_ACCOUNTS, false)
+        set(showContactAccounts) = prefs.edit().putBoolean(SHOW_CONTACT_ACCOUNTS, showContactAccounts).apply()
+
     var openDialPadAtLaunch: Boolean
         get() = prefs.getBoolean(OPEN_DIAL_PAD_AT_LAUNCH, false)
         set(openDialPad) = prefs.edit().putBoolean(OPEN_DIAL_PAD_AT_LAUNCH, openDialPad).apply()
