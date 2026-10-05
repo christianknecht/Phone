@@ -48,6 +48,11 @@
         android:title="@string/show_call_details"
         app:showAsAction="never" />
     <item
+        android:id="@+id/cab_name_number"
+        android:showAsAction="never"
+        android:title="@string/name_this_number"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/cab_copy_number"
         android:showAsAction="never"
         android:title="@string/copy_number_to_clipboard"

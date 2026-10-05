@@ -11,6 +11,7 @@ import android.media.AudioManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.PowerManager
+import android.provider.ContactsContract
 import android.provider.ContactsContract.PhoneLookup
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
@@ -165,11 +166,14 @@ fun Context.launchAccountsConfiguration() {
     startActivity(Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS))
 }
 
-fun Activity.startAddContactIntent(phoneNumber: String) {
+fun Activity.startAddContactIntent(phoneNumber: String, name: String? = null) {
     Intent().apply {
         action = Intent.ACTION_INSERT_OR_EDIT
         type = "vnd.android.cursor.item/contact"
         putExtra(KEY_PHONE, phoneNumber)
+        if (!name.isNullOrEmpty()) {
+            putExtra(ContactsContract.Intents.Insert.NAME, name)
+        }
         launchActivityIntent(this)
     }
 }

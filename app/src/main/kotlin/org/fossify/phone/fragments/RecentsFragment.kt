@@ -22,6 +22,7 @@ import org.fossify.phone.adapters.RecentCallsAdapter
 import org.fossify.phone.databinding.FragmentRecentsBinding
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getFavoriteContacts
+import org.fossify.phone.extensions.getNumberNameLookup
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.runAfterAnimations
 import org.fossify.phone.extensions.startAddContactIntent
@@ -179,7 +180,8 @@ class RecentsFragment(
                         if (contact != null) {
                             activity?.startContactDetailsIntent(contact)
                         } else {
-                            activity?.startAddContactIntent(recentCall.phoneNumber)
+                            val name = recentCall.name.takeIf { recentCall.hasNumberName }
+                            activity?.startAddContactIntent(recentCall.phoneNumber, name)
                         }
                     },
                     favoriteClick = { activity?.handleGenericContactClick(it) },
@@ -244,11 +246,13 @@ class RecentsFragment(
                 }
 
                 val privateContacts = getPrivateContacts()
+                // names given to numbers are dropped first and applied last, so that they follow edits
+                // and a number that became a contact in the meantime shows the contact instead
                 val updatedCalls = updateNamesIfEmpty(
-                    calls = maybeFilterPrivateCalls(calls, privateContacts),
+                    calls = maybeFilterPrivateCalls(calls.map { withNumberName(it, null) }, privateContacts),
                     contacts = contacts,
                     privateContacts = privateContacts
-                )
+                ).let { applyNumberNames(it) }
 
                 callback(
                     groupCallsByDate(updatedCalls)
@@ -297,6 +301,31 @@ class RecentsFragment(
             name = name,
             groupedCalls = call.groupedCalls
                 ?.map { it.copy(name = name) }
+                ?.toMutableList()
+                ?.ifEmpty { null }
+        )
+    }
+
+    private fun applyNumberNames(calls: List<RecentCall>): List<RecentCall> {
+        val getNumberName = context.getNumberNameLookup()
+        return calls.map { call ->
+            val isNotContact = call.name == call.phoneNumber && !call.isUnknownNumber
+            val name = if (isNotContact) getNumberName(call.phoneNumber) else null
+            if (name != null) withNumberName(call, name) else call
+        }
+    }
+
+    // a null name restores the number as the name
+    private fun withNumberName(call: RecentCall, name: String?): RecentCall {
+        val hasAnyNumberName = call.hasNumberName || call.groupedCalls?.any { it.hasNumberName } == true
+        if (name == null && !hasAnyNumberName) return call
+
+        val nameToShow = name ?: call.phoneNumber
+        return call.copy(
+            name = nameToShow,
+            hasNumberName = name != null,
+            groupedCalls = call.groupedCalls
+                ?.map { it.copy(name = name ?: it.phoneNumber, hasNumberName = name != null) }
                 ?.toMutableList()
                 ?.ifEmpty { null }
         )

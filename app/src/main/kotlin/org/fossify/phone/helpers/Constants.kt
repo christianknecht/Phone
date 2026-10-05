@@ -23,6 +23,7 @@ const val ALWAYS_SHOW_FULLSCREEN = "always_show_fullscreen"
 const val ASK_SIM_BEFORE_CALL = "ask_sim_before_call"
 const val PER_SIM_RINGTONES_ENABLED = "per_sim_ringtones_enabled"
 const val SIM_RINGTONE_PREFIX = "sim_ringtone_"
+const val NUMBER_NAMES = "number_names"
 
 const val ALL_TABS_MASK = TAB_CONTACTS or TAB_FAVORITES or TAB_CALL_HISTORY
 

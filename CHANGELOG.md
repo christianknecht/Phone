@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to set the default SIM for a number from the contact and call log menus
 - Format the number while dialing ([#104])
 - Option to show favorites at the top of the call history ([#882])
+- Option to name numbers that aren't contacts, stored only in the app ([#858])
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
@@ -279,6 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#631]: https://github.com/FossifyOrg/Phone/issues/631
 [#645]: https://github.com/FossifyOrg/Phone/issues/645
 [#696]: https://github.com/FossifyOrg/Phone/issues/696
+[#858]: https://github.com/FossifyOrg/Phone/issues/858
 [#882]: https://github.com/FossifyOrg/Phone/issues/882
 
 [Unreleased]: https://github.com/FossifyOrg/Phone/compare/1.11.1...HEAD

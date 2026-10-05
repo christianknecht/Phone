@@ -9,6 +9,7 @@ import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.PopupMenu
@@ -54,6 +55,7 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.databinding.ItemRecentCallBinding
 import org.fossify.phone.databinding.ItemRecentsDateBinding
 import org.fossify.phone.databinding.ItemRecentsFavoritesBinding
+import org.fossify.phone.dialogs.NameNumberDialog
 import org.fossify.phone.dialogs.ShowGroupedCallsDialog
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
@@ -122,6 +124,7 @@ class RecentCallsAdapter(
             findItem(R.id.cab_copy_number).isVisible = isOneItemSelected
             findItem(R.id.cab_show_call_details).isVisible = isOneItemSelected
             findItem(R.id.cab_view_details).isVisible = isOneItemSelected && findContactByCall(selectedItems.first()) != null
+            setupNameNumberItem(findItem(R.id.cab_name_number), selectedItems.singleOrNull())
         }
     }
 
@@ -131,12 +134,12 @@ class RecentCallsAdapter(
         }
 
         when (id) {
-            R.id.cab_call_sim_1 -> callContact(true)
-            R.id.cab_call_sim_2 -> callContact(false)
+            R.id.cab_call_sim_1, R.id.cab_call_sim_2 -> callContact(useSimOne = id == R.id.cab_call_sim_1)
             R.id.cab_set_default_sim -> setDefaultSIM()
             R.id.cab_remove_default_sim -> removeDefaultSIM()
             R.id.cab_block_number -> tryBlocking()
             R.id.cab_add_number -> addNumberToContact()
+            R.id.cab_name_number -> nameNumber()
             R.id.cab_send_sms -> sendSMS()
             R.id.cab_show_call_details -> showCallDetails()
             R.id.cab_copy_number -> copyNumber()
@@ -291,8 +294,28 @@ class RecentCallsAdapter(
     }
 
     private fun addNumberToContact() {
+        val recentCall = getSelectedItems().firstOrNull() ?: return
+        val name = recentCall.name.takeIf { recentCall.hasNumberName }
+        activity.startAddContactIntent(recentCall.phoneNumber, name)
+    }
+
+    // numbers that aren't contacts can be given a name stored only in the app
+    private fun canNameNumber(call: RecentCall?): Boolean {
+        return call != null && refreshItemsListener != null && !call.isUnknownNumber &&
+            (call.hasNumberName || call.name == call.phoneNumber)
+    }
+
+    private fun setupNameNumberItem(item: MenuItem, call: RecentCall?) {
+        item.isVisible = canNameNumber(call)
+        item.setTitle(if (call?.hasNumberName == true) R.string.edit_number_name else R.string.name_this_number)
+    }
+
+    private fun nameNumber() {
         val phoneNumber = getSelectedPhoneNumber() ?: return
-        activity.startAddContactIntent(phoneNumber)
+        NameNumberDialog(activity as SimpleActivity, phoneNumber) {
+            refreshItemsListener?.refreshItems()
+        }
+        finishActMode()
     }
 
     private fun sendSMS() {
@@ -345,6 +368,7 @@ class RecentCallsAdapter(
     }
 
     private fun findContactByCall(recentCall: RecentCall): Contact? {
+        if (recentCall.hasNumberName) return null
         return (activity as MainActivity).cachedContacts.find { it.name == recentCall.name && it.doesHavePhoneNumber(recentCall.phoneNumber) }
     }
 
@@ -393,6 +417,7 @@ class RecentCallsAdapter(
                 findItem(R.id.cab_send_sms).isVisible = !call.isUnknownNumber
                 findItem(R.id.cab_view_details).isVisible = contact != null && !call.isUnknownNumber
                 findItem(R.id.cab_add_number).isVisible = !call.isUnknownNumber
+                setupNameNumberItem(findItem(R.id.cab_name_number), call)
                 findItem(R.id.cab_copy_number).isVisible = !call.isUnknownNumber
                 findItem(R.id.cab_show_call_details).isVisible = !call.isUnknownNumber
                 findItem(R.id.cab_block_number).title = activity.addLockedLabelIfNeeded(R.string.block_number)
@@ -437,6 +462,12 @@ class RecentCallsAdapter(
                     R.id.cab_add_number -> {
                         executeItemMenuOperation(callId) {
                             addNumberToContact()
+                        }
+                    }
+
+                    R.id.cab_name_number -> {
+                        executeItemMenuOperation(callId) {
+                            nameNumber()
                         }
                     }
 
@@ -512,7 +543,9 @@ class RecentCallsAdapter(
                     val typePart = call.specificType
                         .takeIf { it.isNotBlank() }?.let { " - $it" }.orEmpty()
 
+                    // a number with a name given in the app shows both, like a contact's specific number
                     val numPart = call.specificNumber
+                        .ifBlank { if (call.hasNumberName) call.phoneNumber else "" }
                         .takeIf { it.isNotBlank() }
                         ?.let { if (formatPhoneNumbers) it.formatPhoneNumber() else it }
                         ?.let { ", $it" }
@@ -729,6 +762,7 @@ class RecentCallsDiffCallback : DiffUtil.ItemCallback<CallLogItem>() {
                         oldItem.specificNumber == newItem.specificNumber &&
                         oldItem.specificType == newItem.specificType &&
                         oldItem.isUnknownNumber == newItem.isUnknownNumber &&
+                        oldItem.hasNumberName == newItem.hasNumberName &&
                         oldItem.groupedCalls?.size == newItem.groupedCalls?.size
             }
 

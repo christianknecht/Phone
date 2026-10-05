@@ -11,6 +11,7 @@ import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.phone.R
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getNumberName
 import org.fossify.phone.extensions.isConference
 import org.fossify.phone.models.CallContact
 
@@ -70,7 +71,7 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
                         }
                     }
                 } else {
-                    callContact.name = callContact.number
+                    callContact.name = context.getNumberName(number) ?: callContact.number
                 }
 
                 callback(callContact)

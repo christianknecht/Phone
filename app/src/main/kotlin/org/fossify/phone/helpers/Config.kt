@@ -10,6 +10,8 @@ import com.google.gson.reflect.TypeToken
 import org.fossify.commons.helpers.BaseConfig
 import org.fossify.phone.extensions.getPhoneAccountHandleModel
 import org.fossify.phone.extensions.putPhoneAccountHandle
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import org.fossify.phone.models.SpeedDial
 import androidx.core.content.edit
 import java.util.Locale
@@ -66,7 +68,7 @@ class Config(context: Context) : BaseConfig(context) {
                 @Suppress("DEPRECATION")
                 PhoneNumberUtils.compare(
                     it.removePrefix(REMEMBER_SIM_PREFIX),
-                    normalizeCustomSIMNumber(number)
+                    normalizeNumberKey(number)
                 )
             }?.let { legacyKey ->
                 prefs.getPhoneAccountHandleModel(legacyKey, null)?.let {
@@ -87,14 +89,31 @@ class Config(context: Context) : BaseConfig(context) {
     }
 
     private fun getKeyForCustomSIM(number: String): String {
-        return REMEMBER_SIM_PREFIX + normalizeCustomSIMNumber(number)
+        return REMEMBER_SIM_PREFIX + normalizeNumberKey(number)
     }
 
-    private fun normalizeCustomSIMNumber(number: String): String {
+    // a stable key for a number, so that the local and international forms of a number match
+    fun normalizeNumberKey(number: String): String {
         val decoded = Uri.decode(number).removePrefix("tel:")
         val formatted = PhoneNumberUtils.formatNumberToE164(decoded, regionHint)
         return formatted ?: PhoneNumberUtils.normalizeNumber(decoded)
     }
+
+    // names given to numbers that aren't contacts, stored only in the app, keyed by normalizeNumberKey()
+    var numberNames: Map<String, String>
+        get() {
+            val json = prefs.getString(NUMBER_NAMES, null)
+            if (json.isNullOrEmpty()) return emptyMap()
+
+            return try {
+                Json.decodeFromString<Map<String, String>>(json)
+            } catch (_: SerializationException) {
+                emptyMap()
+            } catch (_: IllegalArgumentException) {
+                emptyMap()
+            }
+        }
+        set(numberNames) = prefs.edit { putString(NUMBER_NAMES, Json.encodeToString(numberNames)) }
 
     var showTabs: Int
         get() = prefs.getInt(SHOW_TABS, ALL_TABS_MASK)
