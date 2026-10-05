@@ -64,6 +64,7 @@
     <string name="disable_proximity_sensor">Désactiver le capteur de proximité pendant les appels</string>
     <string name="disable_swipe_to_answer">Remplacer le balayage pour répondre aux appels entrants par un clic</string>
     <string name="show_incoming_calls_full_screen">Toujours afficher les appels entrants en plein écran</string>
+    <string name="flip_to_silence">Retourner le téléphone écran vers le bas pour couper la sonnerie des appels entrants</string>
     <string name="ask_sim_before_call">Demander quelle carte SIM utiliser avant chaque appel</string>
     <string name="hide_dialpad_numbers">Masquer les numéros du pavé numérique</string>
     <string name="export_call_history">Exporter l\'historique d\'appels</string>

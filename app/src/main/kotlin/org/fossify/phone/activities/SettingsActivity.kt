@@ -50,6 +50,7 @@ import org.fossify.phone.extensions.canLaunchAccountsConfiguration
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getAvailableSIMCardLabels
 import org.fossify.phone.extensions.launchAccountsConfiguration
+import org.fossify.phone.helpers.FlipToSilenceDetector
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.models.RecentCall
 import java.util.Locale
@@ -136,6 +137,7 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupFlipToSilence()
         setupAskSimBeforeCall()
         setupPerSimRingtones()
         setupManageSimRingtones()
@@ -421,6 +423,17 @@ class SettingsActivity : SimpleActivity() {
             settingsAlwaysShowFullscreenHolder.setOnClickListener {
                 settingsAlwaysShowFullscreen.toggle()
                 config.alwaysShowFullscreen = settingsAlwaysShowFullscreen.isChecked
+            }
+        }
+    }
+
+    private fun setupFlipToSilence() {
+        binding.apply {
+            settingsFlipToSilenceHolder.beVisibleIf(FlipToSilenceDetector.isSupported(this@SettingsActivity))
+            settingsFlipToSilence.isChecked = config.flipToSilence
+            settingsFlipToSilenceHolder.setOnClickListener {
+                settingsFlipToSilence.toggle()
+                config.flipToSilence = settingsFlipToSilence.isChecked
             }
         }
     }

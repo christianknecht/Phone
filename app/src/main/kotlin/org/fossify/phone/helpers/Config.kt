@@ -164,6 +164,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(ASK_SIM_BEFORE_CALL, true)
         set(value) = prefs.edit { putBoolean(ASK_SIM_BEFORE_CALL, value) }
 
+    var flipToSilence: Boolean
+        get() = prefs.getBoolean(FLIP_TO_SILENCE, false)
+        set(value) = prefs.edit { putBoolean(FLIP_TO_SILENCE, value) }
+
     var perSimRingtonesEnabled: Boolean
         get() = prefs.getBoolean(PER_SIM_RINGTONES_ENABLED, false)
         set(value) = prefs.edit { putBoolean(PER_SIM_RINGTONES_ENABLED, value) }

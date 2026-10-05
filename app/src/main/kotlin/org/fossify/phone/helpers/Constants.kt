@@ -22,6 +22,7 @@ const val HIDE_DIALPAD_NUMBERS = "hide_dialpad_numbers"
 const val ALWAYS_SHOW_FULLSCREEN = "always_show_fullscreen"
 const val ASK_SIM_BEFORE_CALL = "ask_sim_before_call"
 const val PER_SIM_RINGTONES_ENABLED = "per_sim_ringtones_enabled"
+const val FLIP_TO_SILENCE = "flip_to_silence"
 const val SIM_RINGTONE_PREFIX = "sim_ringtone_"
 const val NUMBER_NAMES = "number_names"
 

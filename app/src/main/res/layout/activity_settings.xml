@@ -386,6 +386,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_flip_to_silence_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_flip_to_silence"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/flip_to_silence" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_ask_sim_before_call_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"
