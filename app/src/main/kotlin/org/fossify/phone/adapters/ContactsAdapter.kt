@@ -12,6 +12,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -67,6 +69,16 @@ class ContactsAdapter(
 
     /** When set, list rows show the accounts of each contact under its name (never in grid mode). */
     var contactAccounts: ContactAccounts? = null
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
+
+    /** When true, list rows show a larger contact photo, with less vertical padding to keep the row height. */
+    var largerPhotos = false
         @SuppressLint("NotifyDataSetChanged")
         set(value) {
             if (field != value) {
@@ -462,9 +474,38 @@ class ContactsAdapter(
 
             itemContactAccounts?.let { setupAccounts(it, contact) }
 
+            if (viewType != VIEW_TYPE_GRID) {
+                setupPhotoSize(itemContactFrame, itemContactImage)
+            }
+
             if (!activity.isDestroyed) {
                 SimpleContactsHelper(root.context).loadContactImage(contact.photoUri, itemContactImage, contact.getNameToDisplay())
             }
+        }
+    }
+
+    // set both ways, as the same views are used with and without the larger photos
+    private fun setupPhotoSize(frame: ConstraintLayout, image: ImageView) {
+        val avatarSize = resources.getDimensionPixelSize(
+            if (largerPhotos) R.dimen.larger_contact_avatar_size else org.fossify.commons.R.dimen.list_icon_size_medium
+        )
+        val paddingVertical = resources.getDimensionPixelSize(
+            if (largerPhotos) {
+                R.dimen.larger_contact_item_padding_vertical
+            } else {
+                org.fossify.commons.R.dimen.list_item_padding_vertical
+            }
+        )
+
+        if (image.layoutParams.width != avatarSize || image.layoutParams.height != avatarSize) {
+            image.updateLayoutParams {
+                width = avatarSize
+                height = avatarSize
+            }
+        }
+
+        if (frame.paddingTop != paddingVertical || frame.paddingBottom != paddingVertical) {
+            frame.updatePadding(top = paddingVertical, bottom = paddingVertical)
         }
     }
 

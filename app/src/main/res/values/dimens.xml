@@ -13,9 +13,9 @@
     <dimen name="recyclerview_fab_padding">100dp</dimen>
     <dimen name="recents_favorite_width">80dp</dimen>
     <dimen name="recents_favorite_avatar_size">56dp</dimen>
-    <!-- a contact row showing its accounts keeps the usual 56dp height: 4dp + 48dp avatar + 4dp -->
-    <dimen name="contact_accounts_avatar_size">48dp</dimen>
-    <dimen name="contact_accounts_item_padding_vertical">4dp</dimen>
+    <!-- a contact row with a larger photo keeps the usual 56dp height: 4dp + 48dp avatar + 4dp -->
+    <dimen name="larger_contact_avatar_size">48dp</dimen>
+    <dimen name="larger_contact_item_padding_vertical">4dp</dimen>
 
     <dimen name="caller_name_text_size">34sp</dimen>
     <dimen name="call_status_text_size">20sp</dimen>

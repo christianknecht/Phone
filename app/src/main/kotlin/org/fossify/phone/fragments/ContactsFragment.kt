@@ -26,6 +26,7 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentContactsBinding
 import org.fossify.phone.databinding.FragmentLettersLayoutBinding
+import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.distinctByAggregatedContact
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.launchCreateNewContactIntent
@@ -143,6 +144,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                     }
                 ).apply {
                     contactAccounts = accounts
+                    largerPhotos = context.config.largerContactPhotos
                     binding.fragmentList.adapter = this
                 }
 
@@ -152,6 +154,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
             } else {
                 (binding.fragmentList.adapter as ContactsAdapter).apply {
                     contactAccounts = accounts
+                    largerPhotos = context.config.largerContactPhotos
                     updateItems(contacts)
                 }
             }

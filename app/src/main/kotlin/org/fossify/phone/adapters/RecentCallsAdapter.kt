@@ -12,6 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -517,6 +518,20 @@ class RecentCallsAdapter(
         selectedKeys.remove(callId)
     }
 
+    // the photo view is 48dp with a 4dp padding, so the larger photo just drops the padding and the row keeps its
+    // height. Set both ways, as the same views are used with and without it
+    private fun setupPhotoSize(image: ImageView) {
+        val padding = if (activity.config.largerContactPhotos) {
+            0
+        } else {
+            resources.getDimensionPixelSize(org.fossify.commons.R.dimen.small_margin)
+        }
+
+        if (image.paddingTop != padding) {
+            image.setPadding(padding, padding, padding, padding)
+        }
+    }
+
     private inner class RecentCallViewHolder(val binding: ItemRecentCallBinding) : ViewHolder(binding.root) {
         fun bind(call: RecentCall) = bindView(
             item = call,
@@ -635,6 +650,7 @@ class RecentCallsAdapter(
                     itemRecentsSimId.text = call.simID.toString()
                 }
 
+                setupPhotoSize(itemRecentsImage)
                 SimpleContactsHelper(root.context).loadContactImage(call.photoUri, itemRecentsImage, call.name)
 
                 itemRecentsImage.apply {

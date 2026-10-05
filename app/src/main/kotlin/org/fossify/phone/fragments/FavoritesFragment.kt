@@ -117,6 +117,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                     activity?.startContactDetailsIntent(it as Contact)
                 }).apply {
                 contactAccounts = accounts
+                largerPhotos = context.config.largerContactPhotos
                 binding.fragmentList.adapter = this
 
                 onDragEndListener = {
@@ -140,6 +141,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
         } else {
             currAdapter.viewType = viewType
             currAdapter.contactAccounts = accounts
+            currAdapter.largerPhotos = context.config.largerContactPhotos
             currAdapter.updateItems(allContacts)
         }
     }

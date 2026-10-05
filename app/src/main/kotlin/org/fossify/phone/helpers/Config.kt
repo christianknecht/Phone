@@ -132,6 +132,17 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(SHOW_CONTACT_ACCOUNTS, false)
         set(showContactAccounts) = prefs.edit().putBoolean(SHOW_CONTACT_ACCOUNTS, showContactAccounts).apply()
 
+    // the larger photos came with the contact accounts at first, so whoever had those on keeps them: the first read
+    // stores the value, the two options are independent from then on
+    var largerContactPhotos: Boolean
+        get() {
+            if (!prefs.contains(LARGER_CONTACT_PHOTOS)) {
+                largerContactPhotos = showContactAccounts
+            }
+            return prefs.getBoolean(LARGER_CONTACT_PHOTOS, false)
+        }
+        set(largerContactPhotos) = prefs.edit().putBoolean(LARGER_CONTACT_PHOTOS, largerContactPhotos).apply()
+
     var openDialPadAtLaunch: Boolean
         get() = prefs.getBoolean(OPEN_DIAL_PAD_AT_LAUNCH, false)
         set(openDialPad) = prefs.edit().putBoolean(OPEN_DIAL_PAD_AT_LAUNCH, openDialPad).apply()

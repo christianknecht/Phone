@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Same ids as commons' item_contact_without_number, with a bigger avatar and the contact's accounts below the
-     name. The vertical padding is smaller so the row keeps the same height. -->
+<!-- Same ids and sizes as commons' item_contact_without_number, with the contact's accounts below the name. The
+     adapter switches the avatar and the vertical padding to the larger contact photos sizes when that option is on. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -13,12 +13,12 @@
     android:focusable="true"
     android:minHeight="@dimen/one_line_list_item_min_height"
     android:paddingHorizontal="@dimen/list_item_padding_horizontal"
-    android:paddingVertical="@dimen/contact_accounts_item_padding_vertical">
+    android:paddingVertical="@dimen/list_item_padding_vertical">
 
     <ImageView
         android:id="@+id/item_contact_image"
-        android:layout_width="@dimen/contact_accounts_avatar_size"
-        android:layout_height="@dimen/contact_accounts_avatar_size"
+        android:layout_width="@dimen/list_icon_size_medium"
+        android:layout_height="@dimen/list_icon_size_medium"
         android:padding="@dimen/tiny_margin"
         android:src="@drawable/ic_person_vector"
         app:layout_constraintBottom_toBottomOf="parent"

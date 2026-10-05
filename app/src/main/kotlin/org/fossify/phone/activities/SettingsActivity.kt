@@ -130,6 +130,7 @@ class SettingsActivity : SimpleActivity() {
         setupShowFavoritesInCallHistory()
         setupStartNameWithSurname()
         setupShowContactAccounts()
+        setupLargerContactPhotos()
         setupFormatPhoneNumbers()
         setupDialpadVibrations()
         setupDialpadNumbers()
@@ -356,6 +357,14 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsShowContactAccountsHolder.setOnClickListener {
             binding.settingsShowContactAccounts.toggle()
             config.showContactAccounts = binding.settingsShowContactAccounts.isChecked
+        }
+    }
+
+    private fun setupLargerContactPhotos() {
+        binding.settingsLargerContactPhotos.isChecked = config.largerContactPhotos
+        binding.settingsLargerContactPhotosHolder.setOnClickListener {
+            binding.settingsLargerContactPhotos.toggle()
+            config.largerContactPhotos = binding.settingsLargerContactPhotos.isChecked
         }
     }
 
