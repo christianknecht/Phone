@@ -33,6 +33,7 @@ import org.fossify.commons.models.SimpleListItem
 import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivityCallBinding
 import org.fossify.phone.dialogs.DynamicBottomSheetChooserDialog
+import org.fossify.phone.dialogs.SelectSIMDialog
 import org.fossify.phone.extensions.*
 import org.fossify.phone.helpers.*
 import org.fossify.phone.models.AudioRoute
@@ -65,6 +66,10 @@ class CallActivity : SimpleActivity() {
     private var dialpadHeight = 0f
 
     private var audioRouteChooserDialog: DynamicBottomSheetChooserDialog? = null
+
+    // the call waiting for a SIM to be picked, so the SIM is asked only once even if the call screen is updated again
+    private var phoneAccountPickerCall: Call? = null
+    private var selectSimDialog: SelectSIMDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,6 +107,8 @@ class CallActivity : SimpleActivity() {
         super.onDestroy()
         CallManager.removeListener(callCallback)
         disableProximitySensor()
+        // the call isn't disconnected when the SIM selector closes with the call screen, see showPhoneAccountPicker
+        selectSimDialog?.dismiss()
 
         if (screenOnWakeLock?.isHeld == true) {
             screenOnWakeLock!!.release()
@@ -592,6 +599,11 @@ class CallActivity : SimpleActivity() {
 
             callerAvatar.apply {
                 if (avatarUri.isNullOrEmpty()) {
+                    if (!isDestroyed) {
+                        // a photo of the previous caller still loading must not replace the default avatar
+                        Glide.with(this).clear(this)
+                    }
+
                     val bgColor = getProperPrimaryColor()
                     setBackgroundResource(R.drawable.circle_background)
                     setImageResource(R.drawable.ic_person_vector)
@@ -662,7 +674,7 @@ class CallActivity : SimpleActivity() {
             Call.STATE_ACTIVE -> callStarted()
             Call.STATE_DISCONNECTED -> endCall()
             Call.STATE_CONNECTING, Call.STATE_DIALING -> initOutgoingCallUI()
-            Call.STATE_SELECT_PHONE_ACCOUNT -> showPhoneAccountPicker()
+            Call.STATE_SELECT_PHONE_ACCOUNT -> showPhoneAccountPicker(call)
         }
 
         val statusTextId = when (state) {
@@ -683,6 +695,12 @@ class CallActivity : SimpleActivity() {
     }
 
     private fun updateState() {
+        // a SIM was picked, or the call ended or was cancelled meanwhile
+        if (phoneAccountPickerCall?.getStateCompat() != Call.STATE_SELECT_PHONE_ACCOUNT) {
+            selectSimDialog?.dismiss()
+            selectSimDialog = null
+        }
+
         val phoneState = CallManager.getPhoneState()
         if (phoneState is SingleCall) {
             updateCallState(phoneState.call)
@@ -768,11 +786,30 @@ class CallActivity : SimpleActivity() {
         callDurationHandler.post(updateCallDurationTask)
     }
 
-    private fun showPhoneAccountPicker() {
-        if (callContact != null) {
-            getHandleToUse(intent, callContact!!.number) { handle ->
-                CallManager.getPrimaryCall()?.phoneAccountSelected(handle, false)
+    // Asks the SIM to use for a call started outside the app (like from a car or a headset) or with
+    // "ask SIM before each call", only once per call
+    private fun showPhoneAccountPicker(call: Call) {
+        if (call == phoneAccountPickerCall) {
+            return
+        }
+
+        phoneAccountPickerCall = call
+        var isSimPicked = false
+        getHandleToUse(
+            intent = intent,
+            phoneNumber = getCallContactNow(this, call).number,
+            onSimSelectorShown = { selectSimDialog = it },
+            onSimSelectorDismissed = {
+                selectSimDialog = null
+                // no SIM picked: the call can't go on and the call screen has no button to end it yet. Not when the
+                // selector closes with the call screen, which is shown again for the call
+                if (!isSimPicked && !isDestroyed && call.getStateCompat() == Call.STATE_SELECT_PHONE_ACCOUNT) {
+                    call.disconnect()
+                }
             }
+        ) { handle ->
+            isSimPicked = true
+            call.phoneAccountSelected(handle, false)
         }
     }
 
@@ -832,6 +869,11 @@ class CallActivity : SimpleActivity() {
         override fun onPrimaryCallChanged(call: Call) {
             callDurationHandler.removeCallbacks(updateCallDurationTask)
             updateCallContactInfo(call)
+            updateState()
+        }
+
+        override fun onCallContactsChanged() {
+            updateCallContactInfo(CallManager.getPrimaryCall())
             updateState()
         }
     }

@@ -42,9 +42,10 @@ class CallNotificationManager(private val context: Context) {
     /**
      * Posts the notification right away with what is already known about the caller, at first just the number, since
      * on a locked phone its full screen intent is what opens the call screen. Then updates it with the contact's name
-     * and photo once they are found, without alerting again.
+     * and photo once they are found, without alerting again. [isRefresh] updates it without alerting at all, as when
+     * the caller's contact changed.
      */
-    fun setupNotification(lowPriority: Boolean = false) {
+    fun setupNotification(lowPriority: Boolean = false, isRefresh: Boolean = false) {
         val call = CallManager.getPrimaryCall()
         val callState = CallManager.getState()
         val setupGeneration = synchronized(lock) { ++generation }
@@ -52,7 +53,7 @@ class CallNotificationManager(private val context: Context) {
         val isContactKnown = isCallContactKnown(call)
         val shownContact = getCallContactNow(context, call)
         val shownAvatar = getKnownAvatar(shownContact.photoUri)
-        postNotification(shownContact, shownAvatar, callState, lowPriority, setupGeneration, isUpdate = false)
+        postNotification(shownContact, shownAvatar, callState, lowPriority, setupGeneration, isUpdate = isRefresh)
 
         val isAvatarKnown = shownContact.photoUri.isEmpty() || lastAvatar?.first == shownContact.photoUri
         if (isContactKnown && isAvatarKnown) {

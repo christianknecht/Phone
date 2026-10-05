@@ -20,8 +20,9 @@ import org.fossify.phone.extensions.config
  * Finds the contact of a few numbers, such as the caller or the numbers of the missed call notification, one lookup
  * per number. This is much faster than loading every contact, which takes seconds with a big address book.
  *
- * The system contacts are searched first, then the contacts stored only in Fossify Contacts. The private contacts are
- * skipped when they are hidden in the contact sources filter, unless [includeHiddenPrivateContacts] is set.
+ * The system contacts are searched first, when allowed to read them, then the contacts stored only in Fossify Contacts,
+ * which don't need that permission. The private contacts are skipped when they are hidden in the contact sources
+ * filter, unless [includeHiddenPrivateContacts] is set.
  */
 class ContactNumberLookup(
     private val context: Context,
@@ -36,18 +37,17 @@ class ContactNumberLookup(
     private val privateContacts by lazy { loadPrivateContacts() }
 
     init {
-        if (canReadContacts) {
-            Contact.startWithSurname = context.config.startNameWithSurname
-        }
+        Contact.startWithSurname = context.config.startNameWithSurname
     }
 
     @WorkerThread
     fun find(number: String): FoundContact? {
-        if (!canReadContacts || number.isBlank()) {
+        if (number.isBlank()) {
             return null
         }
 
-        return findSystemContact(number) ?: findPrivateContact(number)
+        val systemContact = if (canReadContacts) findSystemContact(number) else null
+        return systemContact ?: findPrivateContact(number)
     }
 
     private fun findSystemContact(number: String): FoundContact? {

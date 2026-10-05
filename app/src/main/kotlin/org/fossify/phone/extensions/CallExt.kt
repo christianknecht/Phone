@@ -94,20 +94,27 @@ fun BaseSimpleActivity.callContactWithSimWithConfirmationCheck(
     }
 }
 
-// used at devices with multiple SIM cards
+// used at devices with multiple SIM cards. [onSimSelectorShown] and [onSimSelectorDismissed] are called only when the
+// user has to pick a SIM, the dismissal also after a SIM was picked
 @SuppressLint("MissingPermission")
 fun SimpleActivity.getHandleToUse(
     intent: Intent?,
     phoneNumber: String,
     forceSimSelector: Boolean = false,
+    onSimSelectorShown: (SelectSIMDialog) -> Unit = {},
+    onSimSelectorDismissed: () -> Unit = {},
     callback: (handle: PhoneAccountHandle?) -> Unit
 ) {
+    val showSimSelector = {
+        onSimSelectorShown(showSelectSimDialog(phoneNumber, onSimSelectorDismissed, callback))
+    }
+
     handlePermission(PERMISSION_READ_PHONE_STATE) {
         if (it) {
             val defaultHandle =
                 telecomManager.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL)
             when {
-                forceSimSelector -> showSelectSimDialog(phoneNumber, callback)
+                forceSimSelector -> showSimSelector()
                 intent?.hasExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE) == true -> {
                     callback(intent.getParcelableExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE)!!)
                 }
@@ -119,11 +126,11 @@ fun SimpleActivity.getHandleToUse(
                 // no SIM remembered for this number: let the user pick one, ignoring the
                 // system default outgoing account
                 config.askSimBeforeCall && areMultipleSIMsAvailable() -> {
-                    showSelectSimDialog(phoneNumber, callback)
+                    showSimSelector()
                 }
 
                 defaultHandle != null -> callback(defaultHandle)
-                else -> showSelectSimDialog(phoneNumber, callback)
+                else -> showSimSelector()
             }
         }
     }
@@ -131,11 +138,13 @@ fun SimpleActivity.getHandleToUse(
 
 fun SimpleActivity.showSelectSimDialog(
     phoneNumber: String,
+    onDismiss: () -> Unit = {},
     callback: (handle: PhoneAccountHandle?) -> Unit
 ) = SelectSIMDialog(
     activity = this,
     phoneNumber = phoneNumber,
     onDismiss = {
+        onDismiss()
         if (this is DialerActivity) {
             finish()
         }

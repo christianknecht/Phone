@@ -199,6 +199,13 @@ class CallManager {
             listeners.remove(listener)
         }
 
+        // the callers of the ongoing calls were looked up again after the contacts changed
+        fun onCallContactsChanged() {
+            for (listener in listeners) {
+                listener.onCallContactsChanged()
+            }
+        }
+
         fun getState() = getPrimaryCall()?.getStateCompat()
 
         fun keypad(char: Char) {
@@ -214,6 +221,7 @@ interface CallManagerListener {
     fun onStateChanged()
     fun onAudioStateChanged(audioState: AudioRoute)
     fun onPrimaryCallChanged(call: Call)
+    fun onCallContactsChanged()
 }
 
 sealed class PhoneState

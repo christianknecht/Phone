@@ -51,6 +51,10 @@ class SelectSIMDialog(
         }
     }
 
+    fun dismiss() {
+        dialog?.dismiss()
+    }
+
     private fun selectedSIM(handle: PhoneAccountHandle) {
         if (binding.selectSimRemember.isChecked) {
             activity.config.saveCustomSIM(phoneNumber, handle)

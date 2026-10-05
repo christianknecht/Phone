@@ -18,6 +18,7 @@ import org.fossify.phone.extensions.keyguardManager
 import org.fossify.phone.extensions.powerManager
 import org.fossify.phone.extensions.resolveCustomRingtoneUri
 import org.fossify.phone.extensions.updateMissedCallReceiverState
+import org.fossify.phone.helpers.CallContactsObserver
 import org.fossify.phone.helpers.CallManager
 import org.fossify.phone.helpers.CallNotificationManager
 import org.fossify.phone.helpers.FlipToSilenceDetector
@@ -36,6 +37,19 @@ class CallService : InCallService() {
 
     // ringing calls the user already silenced, so flipping the phone again doesn't re-arm the detector
     private val silencedCalls = mutableSetOf<Call>()
+
+    // a caller added to or renamed in the contacts during a call is shown on the call screen and notification
+    private val callContactsObserver by lazy {
+        CallContactsObserver(applicationContext) {
+            // the notification of a call ending is already cancelled, don't post it again
+            val state = CallManager.getState()
+            val isEnding = state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING
+            if (CallManager.getPhoneState() != NoCall && !isEnding) {
+                callNotificationManager.setupNotification(isRefresh = true)
+                CallManager.onCallContactsChanged()
+            }
+        }
+    }
 
     private val callListener = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
@@ -119,6 +133,7 @@ class CallService : InCallService() {
         CallManager.onCallAdded(call)
         CallManager.inCallService = this
         call.registerCallback(callListener)
+        callContactsObserver.start()
 
         maybeStartCustomRingtone(call)
         updateFlipToSilence()
@@ -168,6 +183,7 @@ class CallService : InCallService() {
         if (CallManager.getPhoneState() == NoCall) {
             CallManager.inCallService = null
             callNotificationManager.cancelNotification()
+            callContactsObserver.stop()
             clearCallContacts()
         } else {
             callNotificationManager.setupNotification()
@@ -199,6 +215,7 @@ class CallService : InCallService() {
         silencedCalls.clear()
         ringtoneHelper.stop()
         callNotificationManager.cancelNotification()
+        callContactsObserver.stop()
         clearCallContacts()
     }
 }

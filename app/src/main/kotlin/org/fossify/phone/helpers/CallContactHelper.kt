@@ -78,6 +78,26 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
     }
 }
 
+/**
+ * Looks up the callers of the ongoing calls again, after the contacts changed during a call. The previous callers stay
+ * shown until then. Returns true when any of them changed.
+ */
+@WorkerThread
+fun refreshCallContacts(context: Context): Boolean {
+    var hasChanged = false
+    for ((number, contact) in callContacts) {
+        // a lookup still running may have read the contacts before they changed, wait for it and look up again
+        val previous = contact.value
+        val refreshed = lookUpCallContact(context, number)
+        // replaced only if not cleared or replaced meanwhile
+        if (refreshed != previous && callContacts.replace(number, contact, lazyOf(refreshed))) {
+            hasChanged = true
+        }
+    }
+
+    return hasChanged
+}
+
 private fun getKnownCallContact(number: String): CallContact? {
     val contact = callContacts[number] ?: return null
     return if (contact.isInitialized()) contact.value else null

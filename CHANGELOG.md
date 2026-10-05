@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed per-SIM ringtones ringing through Do Not Disturb
 - Faster caller name on the call screen and call notification, the number and SIM are shown right away
 - A number opened from a link and the last called number show in the dialpad without waiting for the contacts
+- Fixed the SIM selector not showing for calls started from a car or a headset ([#473])
+- The call screen and call notification show the new name of a caller added or edited in the contacts during the call
 
 ## [1.11.1] - 2026-02-01
 ### Changed
@@ -275,6 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#359]: https://github.com/FossifyOrg/Phone/issues/359
 [#378]: https://github.com/FossifyOrg/Phone/issues/378
 [#389]: https://github.com/FossifyOrg/Phone/issues/389
+[#473]: https://github.com/FossifyOrg/Phone/issues/473
 [#526]: https://github.com/FossifyOrg/Phone/issues/526
 [#535]: https://github.com/FossifyOrg/Phone/issues/535
 [#543]: https://github.com/FossifyOrg/Phone/issues/543
