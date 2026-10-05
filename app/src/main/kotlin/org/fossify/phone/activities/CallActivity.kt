@@ -171,10 +171,7 @@ class CallActivity : SimpleActivity() {
         }
 
         callAdd.setOnClickListener {
-            Intent(applicationContext, DialpadActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                startActivity(this)
-            }
+            runAfterUnlock(::openDialpadToAddCall)
         }
 
         callSwap.setOnClickListener {
@@ -186,7 +183,7 @@ class CallActivity : SimpleActivity() {
         }
 
         callManage.setOnClickListener {
-            startActivity(Intent(this@CallActivity, ConferenceActivity::class.java))
+            runAfterUnlock { startActivity(Intent(this@CallActivity, ConferenceActivity::class.java)) }
         }
 
         callEnd.setOnClickListener {
@@ -888,6 +885,27 @@ class CallActivity : SimpleActivity() {
         }
     }
 
+    private fun openDialpadToAddCall() {
+        Intent(applicationContext, DialpadActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+            startActivity(this)
+        }
+    }
+
+    private fun runAfterUnlock(action: () -> Unit) {
+        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        if (!keyguardManager.isKeyguardLocked) {
+            action()
+            return
+        }
+
+        keyguardManager.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+            override fun onDismissSucceeded() {
+                action()
+            }
+        })
+    }
+
     @SuppressLint("NewApi")
     private fun addLockScreenFlags() {
         if (isOreoMr1Plus()) {
@@ -897,16 +915,12 @@ class CallActivity : SimpleActivity() {
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                     or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-                    or WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                     or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             )
         }
 
-        if (isOreoPlus()) {
-            (getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).requestDismissKeyguard(this, null)
-        } else {
-            window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
-        }
+        // the call screen is shown over the lock screen, so don't ask to unlock: on a secure lock screen that
+        // briefly showed the PIN pad over the call screen. Unlocking is only requested by actions that leave it.
 
         try {
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
