@@ -311,6 +311,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_show_favorites_in_call_history_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_show_favorites_in_call_history"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/show_favorites_in_call_history" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_show_call_confirmation_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"

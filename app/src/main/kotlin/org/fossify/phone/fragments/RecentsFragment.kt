@@ -21,6 +21,8 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.RecentCallsAdapter
 import org.fossify.phone.databinding.FragmentRecentsBinding
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getFavoriteContacts
+import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.runAfterAnimations
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
@@ -38,6 +40,10 @@ class RecentsFragment(
     private lateinit var binding: FragmentRecentsBinding
     private var allRecentCalls = listOf<CallLogItem>()
     private var recentsAdapter: RecentCallsAdapter? = null
+
+    // shown above the call log when enabled, empty otherwise
+    @Volatile
+    private var favoriteContacts = listOf<Contact>()
 
     private var searchQuery: String? = null
     private var recentsHelper = RecentsHelper(context)
@@ -89,7 +95,7 @@ class RecentsFragment(
     override fun onSearchClosed() {
         searchQuery = null
         showOrHidePlaceholder(allRecentCalls.isEmpty())
-        recentsAdapter?.updateItems(allRecentCalls)
+        recentsAdapter?.updateItems(withFavorites(allRecentCalls))
     }
 
     override fun onSearchQueryChanged(text: String) {
@@ -175,14 +181,15 @@ class RecentsFragment(
                         } else {
                             activity?.startAddContactIntent(recentCall.phoneNumber)
                         }
-                    }
+                    },
+                    favoriteClick = { activity?.handleGenericContactClick(it) },
+                    favoriteLongClick = { activity?.startContactDetailsIntent(it) }
                 )
 
                 binding.recentsList.adapter = recentsAdapter
-                recentsAdapter?.updateItems(recents)
-            } else {
-                recentsAdapter?.updateItems(recents)
             }
+
+            recentsAdapter?.updateItems(withFavorites(recents))
         }
     }
 
@@ -206,17 +213,21 @@ class RecentsFragment(
         with(recentsHelper) {
             if (context.config.groupSubsequentCalls) {
                 getGroupedRecentCalls(existingRecentCalls, queryCount) {
-                    prepareCallLog(it, callback)
+                    prepareCallLog(it, loadFavorites = true, callback)
                 }
             } else {
                 getRecentCalls(existingRecentCalls, queryCount) {
-                    prepareCallLog(it, callback)
+                    prepareCallLog(it, loadFavorites = true, callback)
                 }
             }
         }
     }
 
-    private fun prepareCallLog(calls: List<RecentCall>, callback: (List<CallLogItem>) -> Unit) {
+    private fun prepareCallLog(
+        calls: List<RecentCall>,
+        loadFavorites: Boolean = false,
+        callback: (List<CallLogItem>) -> Unit,
+    ) {
         if (calls.isEmpty()) {
             callback(emptyList())
             return
@@ -224,6 +235,14 @@ class RecentsFragment(
 
         SharedContactsLoader.getContacts(context) { contacts ->
             ensureBackgroundThread {
+                if (loadFavorites) {
+                    favoriteContacts = if (context.config.showFavoritesInCallHistory) {
+                        context.getFavoriteContacts(contacts)
+                    } else {
+                        emptyList()
+                    }
+                }
+
                 val privateContacts = getPrivateContacts()
                 val updatedCalls = updateNamesIfEmpty(
                     calls = maybeFilterPrivateCalls(calls, privateContacts),
@@ -297,6 +316,16 @@ class RecentsFragment(
         }
 
         return callLog
+    }
+
+    // the favorites strip scrolls with the call log, as its first item, but is left out of search results
+    private fun withFavorites(callLog: List<CallLogItem>): List<CallLogItem> {
+        val favorites = favoriteContacts
+        return if (favorites.isEmpty() || callLog.isEmpty()) {
+            callLog
+        } else {
+            listOf(CallLogItem.Favorites(favorites)) + callLog
+        }
     }
 
     private fun findContactByCall(recentCall: RecentCall): Contact? {

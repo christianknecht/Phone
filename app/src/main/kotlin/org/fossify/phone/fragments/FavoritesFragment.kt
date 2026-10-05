@@ -5,18 +5,13 @@ import android.util.AttributeSet
 import com.google.gson.Gson
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
-import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getColorStateList
 import org.fossify.commons.extensions.getContrastColor
-import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
-import org.fossify.commons.helpers.Converters
-import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
-import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.commons.views.MyGridLayoutManager
@@ -27,7 +22,7 @@ import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentFavoritesBinding
 import org.fossify.phone.databinding.FragmentLettersLayoutBinding
 import org.fossify.phone.extensions.config
-import org.fossify.phone.extensions.distinctByAggregatedContact
+import org.fossify.phone.extensions.getFavoriteContacts
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
@@ -71,25 +66,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
 
     override fun refreshItems(invalidate: Boolean, callback: (() -> Unit)?) {
         SharedContactsLoader.getContacts(context) { contacts ->
-            allContacts = contacts
-
-            if (SMT_PRIVATE !in context.baseConfig.ignoredContactSources) {
-                val privateCursor = context?.getMyContactsCursor(favoritesOnly = true, withPhoneNumbersOnly = true)
-                val privateContacts = MyContactsContentProvider.getContacts(context, privateCursor).map {
-                    it.copy(starred = 1)
-                }
-                if (privateContacts.isNotEmpty()) {
-                    allContacts.addAll(privateContacts)
-                    allContacts.sort()
-                }
-            }
-            val favorites = context.distinctByAggregatedContact(contacts.filter { it.starred == 1 })
-
-            allContacts = if (activity!!.config.isCustomOrderSelected) {
-                sortByCustomOrder(favorites)
-            } else {
-                favorites
-            }
+            allContacts = context.getFavoriteContacts(contacts)
 
             activity?.runOnUiThread {
                 gotContacts(allContacts)
@@ -163,20 +140,6 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
         binding.fragmentList.adapter?.apply {
             notifyItemRangeChanged(0, allContacts.size)
         }
-    }
-
-    private fun sortByCustomOrder(favorites: List<Contact>): ArrayList<Contact> {
-        val favoritesOrder = activity!!.config.favoritesContactsOrder
-
-        if (favoritesOrder.isEmpty()) {
-            return ArrayList(favorites)
-        }
-
-        val orderList = Converters().jsonToStringList(favoritesOrder)
-        val map = orderList.withIndex().associate { it.value to it.index }
-        val sorted = favorites.sortedBy { map[it.contactId.toString()] }
-
-        return ArrayList(sorted)
     }
 
     private fun saveCustomOrderToPrefs(items: List<Contact>) {

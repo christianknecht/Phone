@@ -126,6 +126,7 @@ class SettingsActivity : SimpleActivity() {
         setupOnContactClick()
         setupDialPadOpen()
         setupGroupSubsequentCalls()
+        setupShowFavoritesInCallHistory()
         setupStartNameWithSurname()
         setupFormatPhoneNumbers()
         setupDialpadVibrations()
@@ -322,6 +323,16 @@ class SettingsActivity : SimpleActivity() {
             settingsGroupSubsequentCallsHolder.setOnClickListener {
                 settingsGroupSubsequentCalls.toggle()
                 config.groupSubsequentCalls = settingsGroupSubsequentCalls.isChecked
+            }
+        }
+    }
+
+    private fun setupShowFavoritesInCallHistory() {
+        binding.apply {
+            settingsShowFavoritesInCallHistory.isChecked = config.showFavoritesInCallHistory
+            settingsShowFavoritesInCallHistoryHolder.setOnClickListener {
+                settingsShowFavoritesInCallHistory.toggle()
+                config.showFavoritesInCallHistory = settingsShowFavoritesInCallHistory.isChecked
             }
         }
     }

@@ -2,6 +2,10 @@ package org.fossify.phone.extensions
 
 import android.content.Context
 import android.provider.ContactsContract
+import org.fossify.commons.extensions.baseConfig
+import org.fossify.commons.extensions.getMyContactsCursor
+import org.fossify.commons.helpers.Converters
+import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.models.contacts.Contact
 
@@ -28,6 +32,43 @@ fun Context.distinctByAggregatedContact(contacts: List<Contact>): ArrayList<Cont
     return contacts.filterTo(ArrayList()) { contact ->
         !isAggregated(contact) || kept[contact.contactId].let { it == null || it === contact }
     }
+}
+
+/**
+ * Returns the favorite (starred) contacts in the order the favorites tab shows them, including the starred private
+ * contacts unless their source is hidden. [contacts] is left untouched. It queries contact providers, so call it from
+ * a background thread.
+ */
+fun Context.getFavoriteContacts(contacts: List<Contact>): ArrayList<Contact> {
+    val allContacts = ArrayList(contacts)
+    if (SMT_PRIVATE !in baseConfig.ignoredContactSources) {
+        val privateCursor = getMyContactsCursor(favoritesOnly = true, withPhoneNumbersOnly = true)
+        val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor).map {
+            it.copy(starred = 1)
+        }
+        if (privateContacts.isNotEmpty()) {
+            allContacts.addAll(privateContacts)
+            allContacts.sort()
+        }
+    }
+
+    val favorites = distinctByAggregatedContact(allContacts.filter { it.starred == 1 })
+    return if (config.isCustomOrderSelected) {
+        sortFavoritesByCustomOrder(favorites)
+    } else {
+        favorites
+    }
+}
+
+private fun Context.sortFavoritesByCustomOrder(favorites: List<Contact>): ArrayList<Contact> {
+    val favoritesOrder = config.favoritesContactsOrder
+    if (favoritesOrder.isEmpty()) {
+        return ArrayList(favorites)
+    }
+
+    val orderList = Converters().jsonToStringList(favoritesOrder)
+    val map = orderList.withIndex().associate { it.value to it.index }
+    return ArrayList(favorites.sortedBy { map[it.contactId.toString()] })
 }
 
 private class AggregatedName(val rawContactId: Int, val displayName: String?)

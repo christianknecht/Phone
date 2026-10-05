@@ -53,6 +53,7 @@ import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.databinding.ItemRecentCallBinding
 import org.fossify.phone.databinding.ItemRecentsDateBinding
+import org.fossify.phone.databinding.ItemRecentsFavoritesBinding
 import org.fossify.phone.dialogs.ShowGroupedCallsDialog
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
@@ -76,7 +77,9 @@ class RecentCallsAdapter(
     private val showOverflowMenu: Boolean,
     private val itemDelete: (List<RecentCall>) -> Unit = {},
     itemClick: (Any) -> Unit,
-    val profileIconClick: ((Any) -> Unit)? = null
+    val profileIconClick: ((Any) -> Unit)? = null,
+    private val favoriteClick: (Contact) -> Unit = {},
+    private val favoriteLongClick: (Contact) -> Unit = {},
 ) : MyRecyclerViewListAdapter<CallLogItem>(activity, recyclerView, RecentCallsDiffCallback(), itemClick) {
 
     private lateinit var outgoingCallIcon: Drawable
@@ -160,6 +163,7 @@ class RecentCallsAdapter(
     override fun getItemViewType(position: Int): Int {
         return when (currentList[position]) {
             is CallLogItem.Date -> VIEW_TYPE_DATE
+            is CallLogItem.Favorites -> VIEW_TYPE_FAVORITES
             is RecentCall -> VIEW_TYPE_CALL
         }
     }
@@ -174,6 +178,10 @@ class RecentCallsAdapter(
                 ItemRecentCallBinding.inflate(layoutInflater, parent, false)
             )
 
+            VIEW_TYPE_FAVORITES -> RecentFavoritesViewHolder(
+                ItemRecentsFavoritesBinding.inflate(layoutInflater, parent, false)
+            )
+
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
 
@@ -185,6 +193,7 @@ class RecentCallsAdapter(
         when (holder) {
             is RecentCallDateViewHolder -> holder.bind(callRecord as CallLogItem.Date)
             is RecentCallViewHolder -> holder.bind(callRecord as RecentCall)
+            is RecentFavoritesViewHolder -> holder.bind(callRecord as CallLogItem.Favorites)
         }
 
         bindViewHolder(holder)
@@ -660,9 +669,36 @@ class RecentCallsAdapter(
         }
     }
 
+    private inner class RecentFavoritesViewHolder(val binding: ItemRecentsFavoritesBinding) : ViewHolder(binding.root) {
+        private val favoritesAdapter = RecentsFavoritesAdapter(
+            activity = activity,
+            itemClick = { contact ->
+                // favorites cannot be selected, so a tap while calls are selected only ends the selection
+                if (actModeCallback.isSelectable) {
+                    finishActMode()
+                } else {
+                    favoriteClick(contact)
+                }
+            },
+            itemLongClick = { contact ->
+                finishActMode()
+                favoriteLongClick(contact)
+            }
+        )
+
+        init {
+            binding.recentsFavoritesList.adapter = favoritesAdapter
+        }
+
+        fun bind(favorites: CallLogItem.Favorites) {
+            favoritesAdapter.updateItems(favorites.contacts, textColor, fontSize)
+        }
+    }
+
     companion object {
         private const val VIEW_TYPE_DATE = 0
         private const val VIEW_TYPE_CALL = 1
+        private const val VIEW_TYPE_FAVORITES = 2
     }
 }
 
@@ -673,6 +709,15 @@ class RecentCallsDiffCallback : DiffUtil.ItemCallback<CallLogItem>() {
     override fun areContentsTheSame(oldItem: CallLogItem, newItem: CallLogItem): Boolean {
         return when {
             oldItem is CallLogItem.Date && newItem is CallLogItem.Date -> oldItem.timestamp == newItem.timestamp && oldItem.dayCode == newItem.dayCode
+            oldItem is CallLogItem.Favorites && newItem is CallLogItem.Favorites -> {
+                oldItem.contacts.size == newItem.contacts.size &&
+                        oldItem.contacts.zip(newItem.contacts).all { (old, new) ->
+                            old.id == new.id &&
+                                    old.getNameToDisplay() == new.getNameToDisplay() &&
+                                    old.photoUri == new.photoUri
+                        }
+            }
+
             oldItem is RecentCall && newItem is RecentCall -> {
                 oldItem.phoneNumber == newItem.phoneNumber &&
                         oldItem.name == newItem.name &&
