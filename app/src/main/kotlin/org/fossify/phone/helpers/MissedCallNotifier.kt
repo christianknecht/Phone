@@ -140,7 +140,7 @@ class MissedCallNotifier(private val context: Context) {
     }
 
     private fun getInfos(calls: List<MissedCall>, sims: List<SIMAccount>): List<MissedCallInfo> {
-        val contacts = MissedCallContactLookup(context)
+        val contacts = ContactNumberLookup(context)
         return calls.map { call ->
             val sim = sims.firstOrNull { it.handle.id == call.accountId }
             if (call.isHidden) {

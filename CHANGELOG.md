@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
+- Faster caller name on the call screen and call notification, the number and SIM are shown right away
 
 ## [1.11.1] - 2026-02-01
 ### Changed

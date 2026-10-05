@@ -25,6 +25,7 @@ import org.fossify.phone.helpers.NoCall
 import org.fossify.phone.helpers.RingerTakeoverDecisions
 import org.fossify.phone.helpers.RingtoneHelper
 import org.fossify.phone.helpers.SingleCall
+import org.fossify.phone.helpers.clearCallContacts
 import org.fossify.phone.models.Events
 import org.greenrobot.eventbus.EventBus
 
@@ -111,6 +112,10 @@ class CallService : InCallService() {
 
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
+        if (calls.size == 1) {
+            // a lookup finishing after the previous call ended could have kept its caller
+            clearCallContacts()
+        }
         CallManager.onCallAdded(call)
         CallManager.inCallService = this
         call.registerCallback(callListener)
@@ -163,6 +168,7 @@ class CallService : InCallService() {
         if (CallManager.getPhoneState() == NoCall) {
             CallManager.inCallService = null
             callNotificationManager.cancelNotification()
+            clearCallContacts()
         } else {
             callNotificationManager.setupNotification()
             if (wasPrimaryCall) {
@@ -193,5 +199,6 @@ class CallService : InCallService() {
         silencedCalls.clear()
         ringtoneHelper.stop()
         callNotificationManager.cancelNotification()
+        clearCallContacts()
     }
 }

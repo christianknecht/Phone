@@ -581,6 +581,7 @@ class CallActivity : SimpleActivity() {
             callerNameLabel.text = name.ifEmpty { getString(R.string.unknown_caller) }
             if (number.isNotEmpty() && number != name) {
                 callerNumber.text = number
+                callerNumber.beVisible()
 
                 if (numberLabel.isNotEmpty()) {
                     callerNumber.text = "$number - $numberLabel"
@@ -599,6 +600,10 @@ class CallActivity : SimpleActivity() {
                     background.applyColorFilter(bgColor)
                 } else {
                     if (!isFinishing && !isDestroyed) {
+                        // the number is shown with the default avatar until the contact is found
+                        background = null
+                        clearColorFilter()
+                        setPadding(0)
                         Glide.with(this)
                             .load(avatarUri)
                             .apply(RequestOptions.circleCropTransform())
@@ -698,9 +703,14 @@ class CallActivity : SimpleActivity() {
     private fun updateCallOnHoldState(call: Call?) {
         val hasCallOnHold = call != null
         if (hasCallOnHold) {
-            getCallContact(applicationContext, call) { contact ->
-                runOnUiThread {
-                    binding.onHoldCallerName.text = getContactNameOrNumber(contact)
+            binding.onHoldCallerName.text = getContactNameOrNumber(getCallContactNow(this, call))
+            if (!isCallContactKnown(call)) {
+                getCallContact(applicationContext, call) { contact ->
+                    runOnUiThread {
+                        if (CallManager.getPhoneState().let { it is TwoCalls && it.onHold == call }) {
+                            binding.onHoldCallerName.text = getContactNameOrNumber(contact)
+                        }
+                    }
                 }
             }
         }
@@ -711,18 +721,27 @@ class CallActivity : SimpleActivity() {
         }
     }
 
+    // Shows the number and the SIM right away, then the contact's name and photo once found
     private fun updateCallContactInfo(call: Call?) {
+        showCallContact(call, getCallContactNow(this, call))
+        checkCalledSIMCard()
+        if (isCallContactKnown(call)) {
+            return
+        }
+
         getCallContact(applicationContext, call) { contact ->
-            if (call != CallManager.getPrimaryCall()) {
-                return@getCallContact
-            }
-            callContact = contact
-            val avatar = if (!call.isConference()) contact.photoUri else null
             runOnUiThread {
-                updateOtherPersonsInfo(avatar)
-                checkCalledSIMCard()
+                if (call == CallManager.getPrimaryCall() && !isDestroyed) {
+                    showCallContact(call, contact)
+                }
             }
         }
+    }
+
+    private fun showCallContact(call: Call?, contact: CallContact) {
+        callContact = contact
+        val avatar = if (!call.isConference()) contact.photoUri else null
+        updateOtherPersonsInfo(avatar)
     }
 
     private fun acceptCall() {
