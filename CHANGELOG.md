@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Option to set the default SIM for a number from the contact and call log menus
+- Format the number while dialing ([#104])
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
@@ -244,6 +245,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#96]: https://github.com/FossifyOrg/Phone/issues/96
 [#97]: https://github.com/FossifyOrg/Phone/issues/97
 [#98]: https://github.com/FossifyOrg/Phone/issues/98
+[#104]: https://github.com/FossifyOrg/Phone/issues/104
 [#116]: https://github.com/FossifyOrg/Phone/issues/116
 [#118]: https://github.com/FossifyOrg/Phone/issues/118
 [#125]: https://github.com/FossifyOrg/Phone/issues/125

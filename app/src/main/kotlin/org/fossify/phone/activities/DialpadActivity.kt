@@ -53,11 +53,14 @@ import org.fossify.phone.extensions.boundingBox
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.disableKeyboard
 import org.fossify.phone.extensions.getKeyEvent
+import org.fossify.phone.extensions.isPhoneFormattingChar
 import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.extensions.stripPhoneFormatting
 import org.fossify.phone.helpers.DIALPAD_TONE_LENGTH_MS
+import org.fossify.phone.helpers.PhoneNumberFormattingWatcher
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.helpers.ToneGeneratorHelper
 import org.fossify.phone.models.SpeedDial
@@ -74,6 +77,11 @@ class DialpadActivity : SimpleActivity() {
     private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
     private val longPressHandler = Handler(Looper.getMainLooper())
     private val pressedKeys = mutableSetOf<Char>()
+    private var lastDialpadNumber: String? = null
+
+    /** The typed number without the formatting characters, this is what gets searched, dialed or saved. */
+    private val dialpadNumber: String
+        get() = binding.dialpadInput.value.stripPhoneFormatting()
 
     private var hasRussianLocale = false
     private val russianCharsMap by lazy {
@@ -192,9 +200,20 @@ class DialpadActivity : SimpleActivity() {
         binding.apply {
             dialpadClearChar.setOnClickListener { clearChar(it) }
             dialpadClearChar.setOnLongClickListener { clearInput(); true }
-            dialpadCallButton.setOnClickListener { initCall(dialpadInput.value) }
+            dialpadCallButton.setOnClickListener { initCall(dialpadNumber) }
             dialpadCallButton.setOnLongClickListener { initCallWithSimSelector() }
-            dialpadInput.onTextChangeListener { dialpadValueChanged(it) }
+            if (config.formatPhoneNumbers) {
+                // added before the listener below, so it always sees the formatted text
+                dialpadInput.addTextChangedListener(PhoneNumberFormattingWatcher(config.regionHint))
+            }
+            dialpadInput.onTextChangeListener {
+                // the formatting watcher can trigger several callbacks for a single key press
+                val number = it.trim().stripPhoneFormatting()
+                if (number != lastDialpadNumber) {
+                    lastDialpadNumber = number
+                    dialpadValueChanged(number)
+                }
+            }
             dialpadInput.requestFocus()
             dialpadInput.disableKeyboard()
         }
@@ -244,7 +263,7 @@ class DialpadActivity : SimpleActivity() {
         ) {
             val number = Uri.decode(intent.dataString).substringAfter("tel:")
             binding.dialpadInput.setText(number)
-            binding.dialpadInput.setSelection(number.length)
+            binding.dialpadInput.setSelection(binding.dialpadInput.length())
             true
         } else {
             false
@@ -252,7 +271,7 @@ class DialpadActivity : SimpleActivity() {
     }
 
     private fun addNumberToContact() {
-        startAddContactIntent(binding.dialpadInput.value)
+        startAddContactIntent(dialpadNumber)
     }
 
     private fun dialpadPressed(char: Char, view: View?) {
@@ -261,7 +280,23 @@ class DialpadActivity : SimpleActivity() {
     }
 
     private fun clearChar(view: View) {
-        binding.dialpadInput.dispatchKeyEvent(binding.dialpadInput.getKeyEvent(KeyEvent.KEYCODE_DEL))
+        binding.dialpadInput.apply {
+            // deleting a formatting space would just bring it back, delete the digit before it instead
+            val currentText = text.toString()
+            val cursor = selectionStart
+            if (cursor > 0 && cursor == selectionEnd) {
+                var position = cursor
+                while (position > 0 && currentText[position - 1].isPhoneFormattingChar()) {
+                    position--
+                }
+
+                if (position in 1 until cursor) {
+                    setSelection(position)
+                }
+            }
+
+            dispatchKeyEvent(getKeyEvent(KeyEvent.KEYCODE_DEL))
+        }
         maybePerformDialpadHapticFeedback(view)
     }
 
@@ -286,7 +321,7 @@ class DialpadActivity : SimpleActivity() {
         }
 
         runOnUiThread {
-            if (!checkDialIntent() && binding.dialpadInput.value.isEmpty()) {
+            if (!checkDialIntent() && dialpadNumber.isEmpty()) {
                 dialpadValueChanged("")
             }
         }
@@ -355,11 +390,11 @@ class DialpadActivity : SimpleActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
         if (requestCode == REQUEST_CODE_SET_DEFAULT_DIALER && isDefaultDialer()) {
-            dialpadValueChanged(binding.dialpadInput.value)
+            dialpadValueChanged(dialpadNumber)
         }
     }
 
-    private fun initCall(number: String = binding.dialpadInput.value, name: String? = null) {
+    private fun initCall(number: String = dialpadNumber, name: String? = null) {
         if (number.isNotEmpty()) {
             startCallWithConfirmationCheck(number, name ?: number)
             clearInputWithDelay()
@@ -369,6 +404,7 @@ class DialpadActivity : SimpleActivity() {
                 if (!mostRecentNumber.isNullOrEmpty()) {
                     runOnUiThread {
                         binding.dialpadInput.setText(mostRecentNumber)
+                        binding.dialpadInput.setSelection(binding.dialpadInput.length())
                     }
                 }
             }
@@ -376,7 +412,7 @@ class DialpadActivity : SimpleActivity() {
     }
 
     private fun initCallWithSimSelector(): Boolean {
-        val number = binding.dialpadInput.value
+        val number = dialpadNumber
         return if (areMultipleSIMsAvailable() && number.isNotEmpty()) {
             startCallWithConfirmationCheck(
                 recipient = number,
@@ -390,7 +426,7 @@ class DialpadActivity : SimpleActivity() {
     }
 
     private fun speedDial(id: Int): Boolean {
-        if (binding.dialpadInput.value.length == 1) {
+        if (dialpadNumber.length == 1) {
             val speedDial = speedDialValues.firstOrNull { it.id == id }
             if (speedDial?.isValid() == true) {
                 initCall(speedDial.number, speedDial.getName(this))

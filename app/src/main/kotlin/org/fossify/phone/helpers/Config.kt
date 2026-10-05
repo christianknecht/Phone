@@ -19,7 +19,7 @@ class Config(context: Context) : BaseConfig(context) {
         fun newInstance(context: Context) = Config(context)
     }
 
-    private val regionHint: String by lazy {
+    val regionHint: String by lazy {
         val telephonyManager = context.getSystemService(TelephonyManager::class.java)
         listOf(
             telephonyManager?.simCountryIso,
