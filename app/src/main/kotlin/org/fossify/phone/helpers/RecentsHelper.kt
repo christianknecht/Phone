@@ -16,6 +16,14 @@ import org.fossify.phone.extensions.getAvailableSIMCardLabels
 import org.fossify.phone.models.RecentCall
 import org.fossify.phone.models.SIMAccount
 
+// PRESENTATION_UNAVAILABLE is a constant copied at build time, older Android versions just never use it
+@SuppressLint("InlinedApi")
+private fun isHiddenPresentation(presentation: Int): Boolean {
+    return presentation == PRESENTATION_UNKNOWN
+        || presentation == PRESENTATION_UNAVAILABLE
+        || presentation == Calls.PRESENTATION_RESTRICTED
+}
+
 class RecentsHelper(private val context: Context) {
     companion object {
         private const val COMPARABLE_PHONE_NUMBER_LENGTH = 9
@@ -72,6 +80,47 @@ class RecentsHelper(private val context: Context) {
                         .distinctBy { it.id }
                 )
             }
+        }
+    }
+
+    /**
+     * The number of the most recent call, for calling it back from the dialpad. Read alone, without loading the
+     * contacts like [getRecentCalls] does. Null when there is none, or when it is hidden or blocked.
+     */
+    fun getLastCallNumber(callback: (String?) -> Unit) {
+        if (!context.hasPermission(PERMISSION_READ_CALL_LOG)) {
+            callback(null)
+            return
+        }
+
+        ensureBackgroundThread {
+            val number = try {
+                queryLastCallNumber()
+            } catch (ignored: Exception) {
+                null
+            }
+
+            callback(number)
+        }
+    }
+
+    private fun queryLastCallNumber(): String? {
+        val uri = contentUri.buildUpon()
+            .appendQueryParameter(Calls.LIMIT_PARAM_KEY, "1")
+            .build()
+        val projection = arrayOf(Calls.NUMBER, Calls.NUMBER_PRESENTATION)
+        val sortOrder = "${Calls.DATE} DESC"
+        val number = context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
+            if (!cursor.moveToFirst()) {
+                return@use null
+            }
+
+            val presentation = cursor.getIntValueOrNull(Calls.NUMBER_PRESENTATION) ?: Calls.PRESENTATION_ALLOWED
+            cursor.getStringValueOrNull(Calls.NUMBER).takeUnless { isHiddenPresentation(presentation) }
+        }
+
+        return number?.takeUnless {
+            it.isBlank() || it == "-1" || context.isNumberBlocked(it, context.getBlockedNumbers())
         }
     }
 
@@ -183,9 +232,7 @@ class RecentsHelper(private val context: Context) {
                 var isUnknownNumber = false
                 val number = cursor.getStringValueOrNull(Calls.NUMBER)
                 val presentation = cursor.getIntValueOrNull(Calls.NUMBER_PRESENTATION) ?: Calls.PRESENTATION_ALLOWED
-                val presentationBlocked = presentation == PRESENTATION_UNKNOWN
-                        || presentation == PRESENTATION_UNAVAILABLE
-                        || presentation == Calls.PRESENTATION_RESTRICTED
+                val presentationBlocked = isHiddenPresentation(presentation)
                 if (presentationBlocked || number.isNullOrBlank() || number == "-1") {
                     isUnknownNumber = true
                 }

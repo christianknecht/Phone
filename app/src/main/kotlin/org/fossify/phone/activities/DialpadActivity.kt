@@ -3,7 +3,6 @@ package org.fossify.phone.activities
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.Intent
-import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -45,6 +44,7 @@ import org.fossify.commons.helpers.LOWER_ALPHA_INT
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.commons.helpers.REQUEST_CODE_SET_DEFAULT_DIALER
+import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isOreoPlus
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
@@ -76,7 +76,6 @@ class DialpadActivity : SimpleActivity() {
 
     private var allContacts = ArrayList<Contact>()
     private var speedDialValues = ArrayList<SpeedDial>()
-    private var privateCursor: Cursor? = null
     private var toneGeneratorHelper: ToneGeneratorHelper? = null
     private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
     private val longPressHandler = Handler(Looper.getMainLooper())
@@ -162,7 +161,6 @@ class DialpadActivity : SimpleActivity() {
 
         setupOptionsMenu()
         speedDialValues = config.getSpeedDialValues()
-        privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
 
         toneGeneratorHelper = ToneGeneratorHelper(this, DIALPAD_TONE_LENGTH_MS)
 
@@ -232,8 +230,19 @@ class DialpadActivity : SimpleActivity() {
             dialpadInput.disableKeyboard()
         }
 
-        ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = true) { allContacts ->
-            gotContacts(allContacts)
+        // a number from a tel: link is shown right away, the matching contacts once they are loaded
+        checkDialIntent()
+        ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+            ensureBackgroundThread {
+                val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+                val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
+                if (privateContacts.isNotEmpty()) {
+                    contacts.addAll(privateContacts)
+                    contacts.sort()
+                }
+
+                runOnUiThread { gotContacts(contacts) }
+            }
         }
 
         val properPrimaryColor = getProperPrimaryColor()
@@ -270,17 +279,14 @@ class DialpadActivity : SimpleActivity() {
         }
     }
 
-    private fun checkDialIntent(): Boolean {
-        return if (
+    private fun checkDialIntent() {
+        if (
             (intent.action == Intent.ACTION_DIAL || intent.action == Intent.ACTION_VIEW)
             && intent.data != null && intent.dataString?.contains("tel:") == true
         ) {
             val number = Uri.decode(intent.dataString).substringAfter("tel:")
             binding.dialpadInput.setText(number)
             binding.dialpadInput.setSelection(binding.dialpadInput.length())
-            true
-        } else {
-            false
         }
     }
 
@@ -344,19 +350,12 @@ class DialpadActivity : SimpleActivity() {
     }
 
     private fun gotContacts(newContacts: ArrayList<Contact>) {
+        if (isDestroyed) {
+            return
+        }
+
         allContacts = newContacts
-
-        val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
-        if (privateContacts.isNotEmpty()) {
-            allContacts.addAll(privateContacts)
-            allContacts.sort()
-        }
-
-        runOnUiThread {
-            if (!checkDialIntent() && dialpadNumber.isEmpty()) {
-                dialpadValueChanged("")
-            }
-        }
+        showMatchingContacts(dialpadNumber)
     }
 
     private fun dialpadValueChanged(text: String) {
@@ -377,6 +376,10 @@ class DialpadActivity : SimpleActivity() {
             return
         }
 
+        showMatchingContacts(text)
+    }
+
+    private fun showMatchingContacts(text: String) {
         (binding.dialpadList.adapter as? ContactsAdapter)?.finishActMode()
 
         val filtered = allContacts.filter { contact ->
@@ -431,8 +434,7 @@ class DialpadActivity : SimpleActivity() {
             startCallWithConfirmationCheck(number, name ?: number)
             clearInputWithDelay()
         } else {
-            RecentsHelper(this).getRecentCalls(queryLimit = 1) {
-                val mostRecentNumber = it.firstOrNull()?.phoneNumber
+            RecentsHelper(this).getLastCallNumber { mostRecentNumber ->
                 if (!mostRecentNumber.isNullOrEmpty()) {
                     runOnUiThread {
                         binding.dialpadInput.setText(mostRecentNumber)
