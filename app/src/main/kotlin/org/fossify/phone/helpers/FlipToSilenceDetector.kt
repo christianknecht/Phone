@@ -17,6 +17,13 @@ private const val FACE_DOWN_XY_TOLERANCE = 3f
 // face-down threshold so that the ringing vibration of a phone already lying face down can't arm it
 private const val ARMING_Z_THRESHOLD = 0f
 
+// how long the screen has to keep pointing up (z above the arming threshold) to arm the detector, so a
+// single noisy sample can't arm it
+private const val ARMING_DURATION_NANOS = 175_000_000L
+
+// raw accelerometer samples ignored after starting, while the low-pass filter settles on gravity
+private const val GRAVITY_FILTER_WARMUP_SAMPLES = 5
+
 // how long the phone has to stay face down before the call is silenced
 private const val FACE_DOWN_DURATION_NANOS = 500_000_000L
 
@@ -25,7 +32,7 @@ private const val GRAVITY_FILTER_ALPHA = 0.8f
 
 /**
  * Detects the phone being flipped face down while a call rings. It only fires on a real flip: the phone
- * must first be seen with the screen not pointing down (so a phone already lying face down when the call
+ * must first be seen with the screen pointing up for a moment (so a phone already lying face down when the call
  * arrives is ignored until it has been turned over once), then stay face down for a short while.
  * One-shot: it stops listening once it fires. Main thread only, driven by the InCallService.
  */
@@ -36,6 +43,8 @@ class FlipToSilenceDetector(context: Context, private val onFlip: () -> Unit) : 
 
     private var isListening = false
     private var isArmed = false
+    private var armingSince = 0L
+    private var ignoredSamples = 0
     private var faceDownSince = 0L
     private var gravity: FloatArray? = null
 
@@ -45,6 +54,8 @@ class FlipToSilenceDetector(context: Context, private val onFlip: () -> Unit) : 
         }
 
         isArmed = false
+        armingSince = 0L
+        ignoredSamples = 0
         faceDownSince = 0L
         gravity = null
         isListening = sensorManager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI) == true
@@ -63,17 +74,22 @@ class FlipToSilenceDetector(context: Context, private val onFlip: () -> Unit) : 
         }
 
         val (x, y, z) = filterGravity(event)
+        if (gravitySensor == null && ignoredSamples < GRAVITY_FILTER_WARMUP_SAMPLES) {
+            ignoredSamples++
+            return
+        }
+
         val isFaceDown = z < FACE_DOWN_Z_THRESHOLD &&
             abs(x) < FACE_DOWN_XY_TOLERANCE &&
             abs(y) < FACE_DOWN_XY_TOLERANCE
 
         if (!isFaceDown) {
             faceDownSince = 0L
-            if (z > ARMING_Z_THRESHOLD) {
-                isArmed = true
-            }
+            updateArming(z, event.timestamp)
             return
         }
+
+        armingSince = 0L
 
         if (!isArmed) {
             return
@@ -84,6 +100,20 @@ class FlipToSilenceDetector(context: Context, private val onFlip: () -> Unit) : 
         } else if (event.timestamp - faceDownSince >= FACE_DOWN_DURATION_NANOS) {
             stop()
             onFlip()
+        }
+    }
+
+    private fun updateArming(z: Float, timestamp: Long) {
+        if (isArmed) {
+            return
+        }
+
+        if (z <= ARMING_Z_THRESHOLD) {
+            armingSince = 0L
+        } else if (armingSince == 0L) {
+            armingSince = timestamp
+        } else if (timestamp - armingSince >= ARMING_DURATION_NANOS) {
+            isArmed = true
         }
     }
 

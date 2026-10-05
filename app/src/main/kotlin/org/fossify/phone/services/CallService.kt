@@ -1,6 +1,7 @@
 package org.fossify.phone.services
 
 import android.annotation.SuppressLint
+import android.media.AudioManager
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
@@ -9,6 +10,7 @@ import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.telecomManager
 import org.fossify.commons.helpers.PERMISSION_POST_NOTIFICATIONS
 import org.fossify.phone.activities.CallActivity
+import org.fossify.phone.extensions.audioManager
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getStateCompat
 import org.fossify.phone.extensions.isOutgoing
@@ -74,9 +76,11 @@ class CallService : InCallService() {
     // same key as the screening service: the handle's scheme specific part
     private fun Call.callerNumber() = details?.handle?.schemeSpecificPart
 
-    // Listen to the accelerometer only while an incoming call is actually ringing and not silenced yet
+    // Listen to the accelerometer only while an incoming call is actually ringing and not silenced yet,
+    // and not at all when the phone is in silent mode (nothing to silence)
     private fun updateFlipToSilence() {
-        val hasRingingCall = config.flipToSilence && calls.any {
+        val isRingerSilent = audioManager.ringerMode == AudioManager.RINGER_MODE_SILENT
+        val hasRingingCall = config.flipToSilence && !isRingerSilent && calls.any {
             !it.isOutgoing() && it.getStateCompat() == Call.STATE_RINGING && it !in silencedCalls
         }
 
