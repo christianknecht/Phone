@@ -35,6 +35,11 @@
         <intent>
             <action android:name="android.accounts.AccountAuthenticator" />
         </intent>
+
+        <!-- Finds the app of the contact accounts whose authenticator isn't visible, e.g. WhatsApp -->
+        <intent>
+            <action android:name="android.content.SyncAdapter" />
+        </intent>
     </queries>
 
     <application

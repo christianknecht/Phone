@@ -3,7 +3,11 @@ package org.fossify.phone.helpers
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorDescription
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.graphics.drawable.Drawable
+import android.provider.ContactsContract
 import android.provider.ContactsContract.RawContacts
 import androidx.core.content.res.ResourcesCompat
 import org.fossify.commons.R as CommonsR
@@ -12,6 +16,7 @@ import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.extensions.config
+import org.xmlpull.v1.XmlPullParser
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -36,6 +41,9 @@ data class ContactAccounts(private val accountTypesByContactId: Map<Int, List<St
 object ContactAccountsHelper {
     private const val FOSSIFY_CONTACTS_PACKAGE = "org.fossify.contacts"
     private const val FOSSIFY_CONTACTS_DEBUG_PACKAGE = "org.fossify.contacts.debug"
+    private const val ANDROID_NAMESPACE = "http://schemas.android.com/apk/res/android"
+    private const val SYNC_ADAPTER_ACTION = "android.content.SyncAdapter"
+    private const val SYNC_ADAPTER_META_DATA = "android.content.SyncAdapter"
 
     /**
      * [drawable] is shared, so views must use [newDrawable]. [isGeneric] icons are monochrome and get tinted with the
@@ -94,13 +102,76 @@ object ContactAccountsHelper {
             emptyMap()
         }
 
+        val syncAdapterPackages by lazy { getContactsSyncAdapterPackages(context) }
         missingTypes.forEach { accountType ->
             val icon = if (accountType == SMT_PRIVATE) {
                 getPrivateContactsIcon(context)
             } else {
                 authenticators[accountType]?.let { getAuthenticatorIcon(context, it) }
+                    ?: syncAdapterPackages[accountType]?.let { getApplicationIcon(context, it) }
             }
             accountIcons[accountType] = icon ?: getGenericIcon(context)
+        }
+    }
+
+    /**
+     * AccountManager doesn't list every authenticator: WhatsApp's for example isn't visible to other apps, so its
+     * contacts got the phone icon. The apps' contacts sync adapters are visible (see the manifest's <queries>), so
+     * the app syncing an account type into the contacts is found there and its icon used instead.
+     */
+    private fun getContactsSyncAdapterPackages(context: Context): Map<String, String> {
+        val packageManager = context.packageManager
+        val services = try {
+            packageManager.queryIntentServices(Intent(SYNC_ADAPTER_ACTION), PackageManager.GET_META_DATA)
+        } catch (ignored: Exception) {
+            emptyList()
+        }
+
+        val packages = HashMap<String, String>()
+        services.forEach { resolveInfo ->
+            val serviceInfo = resolveInfo.serviceInfo
+            getContactsSyncAdapterAccountType(packageManager, serviceInfo)?.let {
+                packages.putIfAbsent(it, serviceInfo.packageName)
+            }
+        }
+        return packages
+    }
+
+    // the account type a sync adapter syncs into the contacts provider, null if it syncs something else
+    private fun getContactsSyncAdapterAccountType(packageManager: PackageManager, serviceInfo: ServiceInfo): String? {
+        return try {
+            val parser = serviceInfo.loadXmlMetaData(packageManager, SYNC_ADAPTER_META_DATA) ?: return null
+            parser.use {
+                var eventType = parser.eventType
+                while (eventType != XmlPullParser.START_TAG && eventType != XmlPullParser.END_DOCUMENT) {
+                    eventType = parser.next()
+                }
+
+                if (eventType != XmlPullParser.START_TAG) {
+                    return null
+                }
+
+                val resources = packageManager.getResourcesForApplication(serviceInfo.packageName)
+                val getAttribute = { name: String ->
+                    val resId = parser.getAttributeResourceValue(ANDROID_NAMESPACE, name, 0)
+                    if (resId != 0) resources.getString(resId) else parser.getAttributeValue(ANDROID_NAMESPACE, name)
+                }
+
+                getAttribute("accountType")?.takeIf {
+                    it.isNotEmpty() && getAttribute("contentAuthority") == ContactsContract.AUTHORITY
+                }
+            }
+        } catch (ignored: Exception) {
+            null
+        }
+    }
+
+    private fun getApplicationIcon(context: Context, packageName: String): AccountIcon? {
+        return try {
+            val drawable = context.packageManager.getApplicationIcon(packageName)
+            AccountIcon(drawable, getApplicationLabel(context, packageName) ?: packageName, isGeneric = false)
+        } catch (ignored: Exception) {
+            null
         }
     }
 
