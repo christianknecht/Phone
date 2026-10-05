@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to show favorites at the top of the call history ([#882])
 - Option to name numbers that aren't contacts, stored only in the app ([#858])
 - Missed call notification from the app, with the time and the SIM that received the call, and an option to call back with the number's default SIM ([#83], [#839])
-- Option to silence an incoming call by flipping the phone face down ([#124])
+- Option to silence an incoming call by flipping the phone face down ([#65])
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
@@ -241,6 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#39]: https://github.com/FossifyOrg/Phone/issues/39
 [#50]: https://github.com/FossifyOrg/Phone/issues/50
 [#60]: https://github.com/FossifyOrg/Phone/issues/60
+[#65]: https://github.com/FossifyOrg/Phone/issues/65
 [#67]: https://github.com/FossifyOrg/Phone/issues/67
 [#80]: https://github.com/FossifyOrg/Phone/issues/80
 [#81]: https://github.com/FossifyOrg/Phone/issues/81
@@ -253,7 +254,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#104]: https://github.com/FossifyOrg/Phone/issues/104
 [#116]: https://github.com/FossifyOrg/Phone/issues/116
 [#118]: https://github.com/FossifyOrg/Phone/issues/118
-[#124]: https://github.com/FossifyOrg/Phone/issues/124
 [#125]: https://github.com/FossifyOrg/Phone/issues/125
 [#133]: https://github.com/FossifyOrg/Phone/issues/133
 [#139]: https://github.com/FossifyOrg/Phone/issues/139
