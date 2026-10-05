@@ -38,7 +38,6 @@ import org.fossify.commons.extensions.performHapticFeedback
 import org.fossify.commons.extensions.updateTextColors
 import org.fossify.commons.extensions.value
 import org.fossify.commons.extensions.viewBinding
-import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.helpers.KeypadHelper
 import org.fossify.commons.helpers.LOWER_ALPHA_INT
 import org.fossify.commons.helpers.MyContactsContentProvider
@@ -55,6 +54,7 @@ import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.boundingBox
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.disableKeyboard
+import org.fossify.phone.extensions.distinctByAggregatedContact
 import org.fossify.phone.extensions.dropLeadingPhoneLabel
 import org.fossify.phone.extensions.getKeyEvent
 import org.fossify.phone.extensions.isPhoneFormattingChar
@@ -66,6 +66,7 @@ import org.fossify.phone.extensions.stripPhoneFormatting
 import org.fossify.phone.helpers.DIALPAD_TONE_LENGTH_MS
 import org.fossify.phone.helpers.PhoneNumberFormattingWatcher
 import org.fossify.phone.helpers.RecentsHelper
+import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.helpers.ToneGeneratorHelper
 import org.fossify.phone.models.SpeedDial
 import java.util.Locale
@@ -232,7 +233,7 @@ class DialpadActivity : SimpleActivity() {
 
         // a number from a tel: link is shown right away, the matching contacts once they are loaded
         checkDialIntent()
-        ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+        SharedContactsLoader.getContacts(this) { contacts ->
             ensureBackgroundThread {
                 val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
                 val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
@@ -241,7 +242,8 @@ class DialpadActivity : SimpleActivity() {
                     contacts.sort()
                 }
 
-                runOnUiThread { gotContacts(contacts) }
+                val distinctContacts = distinctByAggregatedContact(contacts)
+                runOnUiThread { gotContacts(distinctContacts) }
             }
         }
 

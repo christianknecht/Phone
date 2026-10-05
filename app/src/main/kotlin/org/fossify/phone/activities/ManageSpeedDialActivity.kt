@@ -7,7 +7,6 @@ import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.getPhoneNumberTypeText
 import org.fossify.commons.extensions.updateTextColors
 import org.fossify.commons.extensions.viewBinding
-import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.commons.models.PhoneNumber
@@ -17,6 +16,8 @@ import org.fossify.phone.adapters.SpeedDialAdapter
 import org.fossify.phone.databinding.ActivityManageSpeedDialBinding
 import org.fossify.phone.dialogs.SelectContactDialog
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.distinctByAggregatedContact
+import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RemoveSpeedDialListener
 import org.fossify.phone.models.SpeedDial
 
@@ -39,8 +40,8 @@ class ManageSpeedDialActivity : SimpleActivity(), RemoveSpeedDialListener {
         speedDialValues = config.getSpeedDialValues()
         updateAdapter()
 
-        ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
-            allContacts.addAll(contacts)
+        SharedContactsLoader.getContacts(this) { contacts ->
+            allContacts.addAll(distinctByAggregatedContact(contacts))
 
             val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)

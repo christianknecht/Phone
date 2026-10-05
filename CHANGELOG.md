@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the SIM selector not showing for calls started from a car or a headset ([#473])
 - The call screen and call notification show the new name of a caller added or edited in the contacts during the call
 - Fixed the same account showing twice in the contact sources filter, and accounts that have no contacts showing there
+- Fixed contacts of hidden sources still showing when another account uses the same name (e.g. the same email address)
 
 ## [1.11.1] - 2026-02-01
 ### Changed

@@ -14,7 +14,6 @@ import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.normalizeString
 import org.fossify.commons.extensions.underlineText
-import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
 import org.fossify.commons.helpers.SMT_PRIVATE
@@ -202,7 +201,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
             if (it) {
                 binding.fragmentPlaceholder.text = context.getString(R.string.no_contacts_found)
                 binding.fragmentPlaceholder2.text = context.getString(R.string.create_new_contact)
-                ContactsHelper(context).getContacts(showOnlyContactsWithNumbers = true) { contacts ->
+                SharedContactsLoader.getContacts(context) { contacts ->
                     val distinctContacts = context.distinctByAggregatedContact(contacts)
                     activity?.runOnUiThread {
                         gotContacts(distinctContacts)
