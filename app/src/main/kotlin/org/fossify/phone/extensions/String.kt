@@ -10,3 +10,12 @@ fun Char.isPhoneFormattingChar() = isWhitespace() || this in PHONE_FORMATTING_CH
 
 /** Removes the formatting characters from a phone number, keeping everything that can be dialed. */
 fun String.stripPhoneFormatting() = filterNot { it.isPhoneFormattingChar() }
+
+/**
+ * Drops a label in front of a phone number, like the "Tel: " in "Tel: 079 123 45 67", i.e. everything before
+ * the first dialable character when that part contains a letter. Anything after it is kept as is.
+ */
+fun String.dropLeadingPhoneLabel(): String {
+    val start = indexOfFirst { it.isDigit() || it == '+' || it == '*' || it == '#' }
+    return if (start > 0 && substring(0, start).any { it.isLetter() }) substring(start) else this
+}

@@ -1,6 +1,7 @@
 package org.fossify.phone.activities
 
 import android.annotation.SuppressLint
+import android.content.ClipData
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
@@ -16,6 +17,8 @@ import android.view.View
 import android.view.ViewConfiguration
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
+import androidx.core.view.ContentInfoCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
@@ -52,6 +55,7 @@ import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.boundingBox
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.disableKeyboard
+import org.fossify.phone.extensions.dropLeadingPhoneLabel
 import org.fossify.phone.extensions.getKeyEvent
 import org.fossify.phone.extensions.isPhoneFormattingChar
 import org.fossify.phone.extensions.setupWithContacts
@@ -82,6 +86,12 @@ class DialpadActivity : SimpleActivity() {
     /** The typed number without the formatting characters, this is what gets searched, dialed or saved. */
     private val dialpadNumber: String
         get() = binding.dialpadInput.value.stripPhoneFormatting()
+
+    /** The number as shown in the dialpad (formatted when number formatting is on), for display only. */
+    private val displayedDialpadNumber: String
+        get() = binding.dialpadInput.value.trim()
+
+    private var isNumberFormattingEnabled = false
 
     private var hasRussianLocale = false
     private val russianCharsMap by lazy {
@@ -200,11 +210,15 @@ class DialpadActivity : SimpleActivity() {
         binding.apply {
             dialpadClearChar.setOnClickListener { clearChar(it) }
             dialpadClearChar.setOnLongClickListener { clearInput(); true }
-            dialpadCallButton.setOnClickListener { initCall(dialpadNumber) }
+            dialpadCallButton.setOnClickListener { initCall(dialpadNumber, displayedDialpadNumber) }
             dialpadCallButton.setOnLongClickListener { initCallWithSimSelector() }
-            if (config.formatPhoneNumbers) {
+            isNumberFormattingEnabled = config.formatPhoneNumbers
+            if (isNumberFormattingEnabled) {
                 // added before the listener below, so it always sees the formatted text
                 dialpadInput.addTextChangedListener(PhoneNumberFormattingWatcher(config.regionHint))
+            }
+            ViewCompat.setOnReceiveContentListener(dialpadInput, arrayOf("text/*")) { _, payload ->
+                payload.withoutLeadingLabel()
             }
             dialpadInput.onTextChangeListener {
                 // the formatting watcher can trigger several callbacks for a single key press
@@ -284,7 +298,7 @@ class DialpadActivity : SimpleActivity() {
             // deleting a formatting space would just bring it back, delete the digit before it instead
             val currentText = text.toString()
             val cursor = selectionStart
-            if (cursor > 0 && cursor == selectionEnd) {
+            if (isNumberFormattingEnabled && cursor > 0 && cursor == selectionEnd) {
                 var position = cursor
                 while (position > 0 && currentText[position - 1].isPhoneFormattingChar()) {
                     position--
@@ -298,6 +312,24 @@ class DialpadActivity : SimpleActivity() {
             dispatchKeyEvent(getKeyEvent(KeyEvent.KEYCODE_DEL))
         }
         maybePerformDialpadHapticFeedback(view)
+    }
+
+    // Pasting "Tel: 079 123 45 67" should give the number only. Only a leading label is dropped, letters
+    // further in are kept as before, so vanity numbers like 1-800-FLOWERS still paste unchanged.
+    private fun ContentInfoCompat.withoutLeadingLabel(): ContentInfoCompat {
+        if (clip.itemCount != 1) {
+            return this
+        }
+
+        val pasted = clip.getItemAt(0).coerceToText(this@DialpadActivity).toString()
+        val cleaned = pasted.dropLeadingPhoneLabel()
+        if (cleaned == pasted) {
+            return this
+        }
+
+        return ContentInfoCompat.Builder(this)
+            .setClip(ClipData.newPlainText(clip.description.label, cleaned))
+            .build()
     }
 
     private fun clearInput() {
@@ -416,7 +448,7 @@ class DialpadActivity : SimpleActivity() {
         return if (areMultipleSIMsAvailable() && number.isNotEmpty()) {
             startCallWithConfirmationCheck(
                 recipient = number,
-                name = number,
+                name = displayedDialpadNumber,
                 forceSimSelector = true
             )
             true
