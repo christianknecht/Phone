@@ -36,6 +36,7 @@ import org.fossify.phone.extensions.clearMissedCalls
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.handleFullScreenNotificationsPermission
 import org.fossify.phone.extensions.launchCreateNewContactIntent
+import org.fossify.phone.extensions.updateMissedCallReceiverState
 import org.fossify.phone.fragments.ContactsFragment
 import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
@@ -146,6 +147,8 @@ class MainActivity : SimpleActivity() {
         }
 
         checkShortcuts()
+        // the call log permission or the notifications may have been allowed or denied meanwhile
+        updateMissedCallReceiverState()
         Handler().postDelayed({
             getRecentsFragment()?.refreshItems()
         }, 2000)

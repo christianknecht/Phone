@@ -15,6 +15,7 @@ import org.fossify.phone.extensions.isOutgoing
 import org.fossify.phone.extensions.keyguardManager
 import org.fossify.phone.extensions.powerManager
 import org.fossify.phone.extensions.resolveCustomRingtoneUri
+import org.fossify.phone.extensions.updateMissedCallReceiverState
 import org.fossify.phone.helpers.CallManager
 import org.fossify.phone.helpers.CallNotificationManager
 import org.fossify.phone.helpers.FlipToSilenceDetector
@@ -129,6 +130,9 @@ class CallService : InCallService() {
                 callNotificationManager.setupNotification()
             }
         }
+
+        // before this call can be missed, decide whether the app or Telecom will show the notification
+        updateMissedCallReceiverState()
     }
 
     override fun onCallRemoved(call: Call) {

@@ -1,7 +1,9 @@
 package org.fossify.phone.extensions
 
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.provider.CallLog.Calls
 import org.fossify.commons.extensions.getBlockedNumbers
 import org.fossify.commons.extensions.getIntValueOrNull
@@ -9,7 +11,10 @@ import org.fossify.commons.extensions.getLongValue
 import org.fossify.commons.extensions.getStringValueOrNull
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.isNumberBlocked
+import org.fossify.commons.extensions.notificationManager
+import org.fossify.commons.helpers.PERMISSION_READ_CALL_LOG
 import org.fossify.commons.helpers.PERMISSION_WRITE_CALL_LOG
+import org.fossify.phone.receivers.MissedCallReceiver
 
 // The missed calls the user hasn't seen yet, as the system dialers define them
 private const val NEW_MISSED_CALLS_SELECTION = "${Calls.TYPE} = ${Calls.MISSED_TYPE} AND ${Calls.NEW} = 1" +
@@ -61,6 +66,29 @@ fun Context.markMissedCallsAsRead() {
         val selection = "${Calls.TYPE} = ${Calls.MISSED_TYPE} AND (${Calls.NEW} = 1" +
             " OR ${Calls.IS_READ} IS NULL OR ${Calls.IS_READ} = 0)"
         contentResolver.update(Calls.CONTENT_URI, values, selection, null)
+    } catch (ignored: Exception) {
+    }
+}
+
+/**
+ * Telecom gives the missed call notification to the default dialer only if a receiver for it is enabled when the
+ * call is missed (MissedCallNotifierImpl.shouldManageNotificationThroughDefaultDialer queries the receivers each time),
+ * and then no longer posts its own. So keep the receiver enabled only while the app can read the call log and post
+ * notifications, otherwise the system notification is used.
+ */
+fun Context.updateMissedCallReceiverState() {
+    try {
+        val canNotify = hasPermission(PERMISSION_READ_CALL_LOG) && notificationManager.areNotificationsEnabled()
+        val state = if (canNotify) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        } else {
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+        }
+
+        val component = ComponentName(this, MissedCallReceiver::class.java)
+        if (packageManager.getComponentEnabledSetting(component) != state) {
+            packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+        }
     } catch (ignored: Exception) {
     }
 }

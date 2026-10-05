@@ -204,10 +204,14 @@
             android:enabled="true"
             android:exported="false" />
 
-        <!-- Telecom sends this to the default dialer instead of posting its own missed call notification -->
+        <!-- Telecom sends this to the default dialer instead of posting its own missed call notification.
+             Enabled at runtime only while the app can post it, see updateMissedCallReceiverState().
+             Telecom runs as the system uid, which holds MODIFY_PHONE_STATE. -->
         <receiver
             android:name=".receivers.MissedCallReceiver"
-            android:exported="true">
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.MODIFY_PHONE_STATE">
             <intent-filter>
                 <action android:name="android.telecom.action.SHOW_MISSED_CALLS_NOTIFICATION" />
             </intent-filter>

@@ -9,18 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.provider.CallLog.Calls
+import android.telecom.PhoneAccountHandle
 import android.text.format.DateUtils
 import org.fossify.commons.extensions.formatPhoneNumber
-import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.notificationManager
-import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.PERMISSION_READ_CALL_LOG
-import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
-import org.fossify.commons.helpers.SMT_PRIVATE
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isSPlus
-import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.MissedCallActionActivity
@@ -29,15 +24,22 @@ import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getAvailableSIMCardLabels
 import org.fossify.phone.extensions.getNewMissedCalls
 import org.fossify.phone.extensions.getNumberName
+import org.fossify.phone.extensions.updateMissedCallReceiverState
 import org.fossify.phone.models.CallContact
 import org.fossify.phone.models.SIMAccount
 import org.fossify.phone.receivers.CallActionReceiver
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Posts the app's own missed call notification. As the default dialer declares a receiver for
  * TelecomManager.ACTION_SHOW_MISSED_CALLS_NOTIFICATION, Telecom no longer posts its own notification, it only
  * tells us when the missed call count changes. The new missed calls are read back from the call log, which also
- * gives the time and the SIM that received each call.
+ * gives the time and the SIM that received each call. Telecom sends the broadcast only once the call is written in
+ * the call log (CallLogManager's LogCallCompletedListener), so the call log is read only once.
+ *
+ * The receiver is enabled only while the app can actually post this notification, see
+ * [updateMissedCallReceiverState], otherwise Telecom posts its own.
  */
 class MissedCallNotifier(private val context: Context) {
     companion object {
@@ -49,86 +51,112 @@ class MissedCallNotifier(private val context: Context) {
         private const val MESSAGE_CODE = 13
         private const val MAX_LISTED_CALLS = 5
 
-        // Telecom normally reports the missed call once it is written in the call log, retry briefly in case not
-        private const val QUERY_ATTEMPTS = 3
-        private const val QUERY_RETRY_DELAY_MS = 1000L
+        // a notification of a group that alerts only through its summary, which is never posted, is silent
+        private const val SILENT_GROUP = "missed_calls_silent"
+
+        // the notification work runs one at a time, in the order Telecom sent the counts
+        private val executor = Executors.newSingleThreadExecutor()
+
+        // bumped whenever the notification is cancelled, so work started before that doesn't post it again
+        private val generation = AtomicInteger()
+        private val lock = Any()
+
+        fun execute(work: () -> Unit) {
+            executor.execute(work)
+        }
     }
 
     private class MissedCallInfo(val call: MissedCall, val name: String, val photoUri: String, val sim: SIMAccount?)
 
-    /** Must be called off the main thread, calls [onDone] once the notification is posted or cancelled. */
-    fun showNotification(expectedCount: Int, onDone: () -> Unit) {
-        val notificationManager = context.notificationManager
-        if (!context.hasPermission(PERMISSION_READ_CALL_LOG) || !notificationManager.areNotificationsEnabled()) {
-            onDone()
+    /**
+     * Must be called off the main thread. [count], [number] and [handle] come from the Telecom broadcast and are only
+     * used when the call log can't be read.
+     */
+    fun showNotification(count: Int, number: String?, handle: PhoneAccountHandle?) {
+        val startGeneration = generation.get()
+        val canReadCallLog = context.hasPermission(PERMISSION_READ_CALL_LOG)
+        if (!canReadCallLog || !context.notificationManager.areNotificationsEnabled()) {
+            // give the next missed calls back to Telecom, which can always show them
+            context.updateMissedCallReceiverState()
+            if (context.notificationManager.areNotificationsEnabled()) {
+                showWithoutCallLog(count, number, handle, startGeneration)
+            }
             return
         }
 
-        var calls = context.getNewMissedCalls()
-        var attempt = 1
-        while (calls.size < expectedCount && attempt < QUERY_ATTEMPTS) {
-            Thread.sleep(QUERY_RETRY_DELAY_MS)
-            calls = context.getNewMissedCalls()
-            attempt++
-        }
-
+        val calls = context.getNewMissedCalls()
         if (calls.isEmpty()) {
             cancelNotification()
-            onDone()
             return
         }
 
-        getContacts { contacts ->
-            ensureBackgroundThread {
-                try {
-                    val sims = context.getAvailableSIMCardLabels()
-                    postNotification(calls.map { getInfo(it, contacts, sims) }, showSim = sims.size > 1)
-                } finally {
-                    onDone()
+        val sims = context.getAvailableSIMCardLabels()
+        val infos = getInfos(calls.take(MAX_LISTED_CALLS), sims)
+        synchronized(lock) {
+            if (generation.get() != startGeneration) {
+                return
+            }
+
+            // the calls may have been marked as read meanwhile, show only the ones that are still new
+            val currentCalls = context.getNewMissedCalls()
+            val shown = infos.filter { info ->
+                currentCalls.any { it.date == info.call.date && it.number == info.call.number }
+            }
+
+            if (currentCalls.isEmpty() || shown.isEmpty()) {
+                if (currentCalls.isEmpty()) {
+                    cancelNotification() // the lock is reentrant
                 }
+                return
+            }
+
+            val newest = currentCalls.first().date
+            val isNew = newest > context.config.lastNotifiedMissedCallDate
+            postNotification(shown, currentCalls.size, showSim = sims.size > 1, alert = isNew)
+            if (isNew) {
+                context.config.lastNotifiedMissedCallDate = newest
             }
         }
     }
 
     fun cancelNotification() {
-        context.notificationManager.cancel(NOTIFICATION_ID)
+        synchronized(lock) {
+            generation.incrementAndGet()
+            context.notificationManager.cancel(NOTIFICATION_ID)
+        }
     }
 
-    private fun getContacts(callback: (List<Contact>) -> Unit) {
-        if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
-            callback(emptyList())
-            return
-        }
-
-        val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-        SharedContactsLoader.getContacts(context, getAll = true) { contacts ->
-            ensureBackgroundThread {
-                if (SMT_PRIVATE !in context.config.ignoredContactSources) {
-                    try {
-                        contacts.addAll(MyContactsContentProvider.getContacts(context, privateCursor))
-                    } catch (ignored: Exception) {
-                    }
-                }
-                callback(contacts)
+    // without access to the call log, only the latest call given by Telecom is known
+    private fun showWithoutCallLog(count: Int, number: String?, handle: PhoneAccountHandle?, startGeneration: Int) {
+        val isHidden = number.isNullOrBlank() || number == "-1"
+        val call = MissedCall(number.orEmpty(), isHidden, System.currentTimeMillis(), handle?.id)
+        val sims = context.getAvailableSIMCardLabels()
+        val info = getInfos(listOf(call), sims).first()
+        synchronized(lock) {
+            if (generation.get() == startGeneration) {
+                postNotification(listOf(info), count, showSim = sims.size > 1, alert = true)
             }
         }
     }
 
-    private fun getInfo(call: MissedCall, contacts: List<Contact>, sims: List<SIMAccount>): MissedCallInfo {
-        val sim = sims.firstOrNull { it.handle.id == call.accountId }
-        if (call.isHidden) {
-            return MissedCallInfo(call, context.getString(R.string.unknown_caller), "", sim)
+    private fun getInfos(calls: List<MissedCall>, sims: List<SIMAccount>): List<MissedCallInfo> {
+        val contacts = MissedCallContactLookup(context)
+        return calls.map { call ->
+            val sim = sims.firstOrNull { it.handle.id == call.accountId }
+            if (call.isHidden) {
+                MissedCallInfo(call, context.getString(R.string.unknown_caller), "", sim)
+            } else {
+                val contact = contacts.find(call.number)
+                val name = contact?.name
+                    ?: context.getNumberName(call.number)
+                    ?: if (context.config.formatPhoneNumbers) call.number.formatPhoneNumber() else call.number
+                MissedCallInfo(call, name, contact?.photoUri.orEmpty(), sim)
+            }
         }
-
-        val contact = contacts.firstOrNull { it.doesHavePhoneNumber(call.number) }
-        val name = contact?.getNameToDisplay()?.takeIf { it.isNotBlank() }
-            ?: context.getNumberName(call.number)
-            ?: if (context.config.formatPhoneNumbers) call.number.formatPhoneNumber() else call.number
-        return MissedCallInfo(call, name, contact?.photoUri.orEmpty(), sim)
     }
 
     @SuppressLint("NewApi")
-    private fun postNotification(calls: List<MissedCallInfo>, showSim: Boolean) {
+    private fun postNotification(calls: List<MissedCallInfo>, total: Int, showSim: Boolean, alert: Boolean) {
         createNotificationChannel()
         val latest = calls.first()
 
@@ -139,13 +167,18 @@ class MissedCallNotifier(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(getOpenCallHistoryIntent())
             .setDeleteIntent(getDismissIntent())
-            .setNumber(calls.size)
+            .setNumber(total)
 
         if (isSPlus()) {
             builder.setCategory(Notification.CATEGORY_MISSED_CALL)
         }
 
-        if (calls.size == 1) {
+        // already notified calls, after a reboot or when one of them is cleared, are shown again without a sound
+        if (!alert) {
+            builder.setGroup(SILENT_GROUP).setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY)
+        }
+
+        if (total == 1) {
             builder.setContentTitle(latest.name)
                 .setContentText(context.getString(R.string.missed_call))
 
@@ -166,11 +199,11 @@ class MissedCallNotifier(private val context: Context) {
                 builder.addAction(getAction(MISSED_CALL_MESSAGE, MESSAGE_CODE, sendSms, latest))
             }
         } else {
-            val title = context.resources.getQuantityString(R.plurals.missed_calls_count, calls.size, calls.size)
+            val title = context.resources.getQuantityString(R.plurals.missed_calls_count, total, total)
             val style = Notification.InboxStyle().setBigContentTitle(title)
             calls.take(MAX_LISTED_CALLS).forEach { style.addLine(getCallLine(it, showSim)) }
-            if (calls.size > MAX_LISTED_CALLS) {
-                style.setSummaryText("+${calls.size - MAX_LISTED_CALLS}")
+            if (total > calls.size) {
+                style.setSummaryText("+${total - calls.size}")
             }
 
             builder.setContentTitle(title)

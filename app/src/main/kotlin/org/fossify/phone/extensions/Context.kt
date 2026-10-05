@@ -17,6 +17,7 @@ import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
 import androidx.core.net.toUri
 import org.fossify.commons.extensions.hasPermission
+import org.fossify.commons.extensions.isDefaultDialer
 import org.fossify.commons.extensions.launchActivityIntent
 import org.fossify.commons.extensions.notificationManager
 import org.fossify.commons.extensions.telecomManager
@@ -148,10 +149,15 @@ fun Context.areMultipleSIMsAvailable(): Boolean {
 
 fun Context.clearMissedCalls() {
     ensureBackgroundThread {
+        MissedCallNotifier(applicationContext).cancelNotification()
+        // only the default dialer handles the missed calls, another dialer may still have to show them
+        if (!isDefaultDialer()) {
+            return@ensureBackgroundThread
+        }
+
         // the app posts the missed call notification itself (see MissedCallReceiver), and in that case Telecom
         // leaves the call log alone, so mark the missed calls as read here
         markMissedCallsAsRead()
-        MissedCallNotifier(applicationContext).cancelNotification()
         try {
             // resets the missed call count cached by Telecom, which then sends us a count of 0
             // https://android.googlesource.com/platform/packages/services/Telecomm/+/master/src/com/android/server/telecom/ui/MissedCallNotifierImpl.java#170
