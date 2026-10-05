@@ -9,12 +9,10 @@ import org.fossify.commons.helpers.isTiramisuPlus
  * current DND policy lets a call from this number ring - the same check Telecom runs for its own
  * ringer (priority contacts, repeat callers...). False when DND blocks the call, and also whenever we
  * cannot tell (older Android, hidden number, no contacts permission, which matchesCallFilter needs).
+ * Only INTERRUPTION_FILTER_ALL counts as "off": UNKNOWN (state not available) is treated as "can't tell".
  */
 fun NotificationManager.isCallAllowedByDnd(number: String?, canReadContacts: Boolean): Boolean {
-    val filter = currentInterruptionFilter
-    val isDndOff = filter == NotificationManager.INTERRUPTION_FILTER_ALL ||
-        filter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN
-    if (isDndOff) {
+    if (currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL) {
         return true
     }
 

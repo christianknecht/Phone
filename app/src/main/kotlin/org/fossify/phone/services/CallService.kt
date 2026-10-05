@@ -20,6 +20,7 @@ import org.fossify.phone.helpers.CallManager
 import org.fossify.phone.helpers.CallNotificationManager
 import org.fossify.phone.helpers.FlipToSilenceDetector
 import org.fossify.phone.helpers.NoCall
+import org.fossify.phone.helpers.RingerTakeoverDecisions
 import org.fossify.phone.helpers.RingtoneHelper
 import org.fossify.phone.helpers.SingleCall
 import org.fossify.phone.models.Events
@@ -48,21 +49,30 @@ class CallService : InCallService() {
         }
     }
 
-    // When the call screening service silenced the system ringer for a SIM with a custom ringtone,
-    // play that ringtone ourselves. Only for the first incoming, ringing call - a second call while
-    // one is active is call-waiting and the system plays a short waiting tone instead.
+    // When the call screening service silenced the system ringer for this call, play the SIM ringtone
+    // ourselves. The screening service's decision is reused rather than recomputed, so the two can't
+    // disagree; no decision means it didn't run (or timed out) and the system ringer is still ringing,
+    // so we stay quiet. Only for the first incoming, ringing call - a second call while one is active
+    // is call-waiting and the system plays a short waiting tone instead.
     private fun maybeStartCustomRingtone(call: Call) {
-        if (call.isOutgoing() || call.getStateCompat() != Call.STATE_RINGING) {
+        if (call.isOutgoing()) {
+            return
+        }
+
+        val systemRingerSilenced = RingerTakeoverDecisions.take(call.callerNumber()) == true
+        if (!systemRingerSilenced || call.getStateCompat() != Call.STATE_RINGING) {
             return
         }
         if (CallManager.getPhoneState() !is SingleCall) {
             return
         }
 
-        val number = call.details?.handle?.schemeSpecificPart
-        val uri = resolveCustomRingtoneUri(number, call.details?.accountHandle) ?: return
+        val uri = resolveCustomRingtoneUri(call.details?.accountHandle) ?: return
         ringtoneHelper.start(uri)
     }
+
+    // same key as the screening service: the handle's scheme specific part
+    private fun Call.callerNumber() = details?.handle?.schemeSpecificPart
 
     // Listen to the accelerometer only while an incoming call is actually ringing and not silenced yet
     private fun updateFlipToSilence() {
@@ -140,6 +150,9 @@ class CallService : InCallService() {
         ringtoneHelper.stop()
         call.unregisterCallback(callListener)
         silencedCalls.remove(call)
+        if (!call.isOutgoing()) {
+            RingerTakeoverDecisions.clear(call.callerNumber())
+        }
         updateFlipToSilence()
         val wasPrimaryCall = call == CallManager.getPrimaryCall()
         CallManager.onCallRemoved(call)

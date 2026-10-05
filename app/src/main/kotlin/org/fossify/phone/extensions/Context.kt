@@ -74,11 +74,11 @@ fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
  * suppressing the system ringer needs setSilenceCall, API 29+) and the caller has no contact-specific
  * ringtone (contact ringtones win).
  *
- * Deliberately independent of the SIM: a CallScreeningService is NOT given the PhoneAccountHandle
- * (getAccountHandle() is null there) - only the InCallService is - yet both must reach the same
- * "take over the ringer?" decision, otherwise the screening service fails to silence and the system
- * ringtone plays on top of ours. Which ringtone to play (per SIM) is decided later, in the
- * InCallService, where the handle is available.
+ * Evaluated once per call, by the call screening service (which silences the system ringer when this
+ * is true), and handed to CallService through RingerTakeoverDecisions so both always agree. Deliberately
+ * independent of the SIM: a CallScreeningService is NOT given the PhoneAccountHandle (getAccountHandle()
+ * is null there). Which ringtone to play (per SIM) is decided later, in the InCallService, where the
+ * handle is available.
  *
  * Do Not Disturb: once we silence it, the system ringer no longer applies the DND rules for us, so we
  * only take over when DND is off or lets this caller through. In every other case the system ringer
@@ -97,15 +97,11 @@ fun Context.shouldPlayCustomRingtone(number: String?): Boolean {
 }
 
 /**
- * The ringtone the InCallService should play once the system ringer has been silenced: the calling
- * SIM's configured ringtone, or the system default ringtone as a fallback (we already silenced the
- * system, so we must play something). Null when we should not take over ringing at all.
+ * The ringtone the InCallService should play once the screening service silenced the system ringer: the
+ * calling SIM's configured ringtone, or the system default ringtone as a fallback (we already silenced
+ * the system, so we must play something).
  */
-fun Context.resolveCustomRingtoneUri(number: String?, handle: PhoneAccountHandle?): Uri? {
-    if (!shouldPlayCustomRingtone(number)) {
-        return null
-    }
-
+fun Context.resolveCustomRingtoneUri(handle: PhoneAccountHandle?): Uri? {
     val simRingtone = handle?.let { config.getSimRingtone(it) }
     if (!simRingtone.isNullOrEmpty()) {
         return simRingtone.toUri()
