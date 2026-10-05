@@ -38,6 +38,8 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
         val uri = Uri.decode(handle)
         if (uri.startsWith("tel:")) {
             val number = uri.substringAfter("tel:")
+            // looked up here, as the contacts callback runs on the main thread
+            val numberName = context.getNumberName(number)
             ContactsHelper(context).getContacts(getAll = true, showOnlyContactsWithNumbers = true) { contacts ->
                 val privateContacts = MyContactsContentProvider.getContacts(context, privateCursor)
                 if (privateContacts.isNotEmpty()) {
@@ -71,7 +73,7 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
                         }
                     }
                 } else {
-                    callContact.name = context.getNumberName(number) ?: callContact.number
+                    callContact.name = numberName ?: callContact.number
                 }
 
                 callback(callContact)

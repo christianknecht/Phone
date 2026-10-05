@@ -176,14 +176,23 @@ fun Context.launchAccountsConfiguration() {
     startActivity(Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS))
 }
 
+/**
+ * Lets the user add [phoneNumber] to a new or an existing contact. A number named in the app ([name]) goes straight to
+ * a new contact with that name, as some contact editors would also apply the name to an existing contact picked
+ * through the insert-or-edit flow, renaming it.
+ */
 fun Activity.startAddContactIntent(phoneNumber: String, name: String? = null) {
     Intent().apply {
-        action = Intent.ACTION_INSERT_OR_EDIT
-        type = "vnd.android.cursor.item/contact"
-        putExtra(KEY_PHONE, phoneNumber)
-        if (!name.isNullOrEmpty()) {
+        if (name.isNullOrEmpty()) {
+            action = Intent.ACTION_INSERT_OR_EDIT
+            type = "vnd.android.cursor.item/contact"
+        } else {
+            action = Intent.ACTION_INSERT
+            data = ContactsContract.Contacts.CONTENT_URI
             putExtra(ContactsContract.Intents.Insert.NAME, name)
         }
+
+        putExtra(KEY_PHONE, phoneNumber)
         launchActivityIntent(this)
     }
 }

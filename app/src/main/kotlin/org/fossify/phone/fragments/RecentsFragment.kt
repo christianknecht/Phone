@@ -293,7 +293,7 @@ class RecentsFragment(
                     calls = maybeFilterPrivateCalls(calls.map { withNumberName(it, null) }, privateContacts),
                     contacts = contacts,
                     privateContacts = privateContacts
-                ).let { applyNumberNames(it) }
+                ).let { applyNumberNames(it, contacts + privateContacts) }
 
                 callback(
                     groupCallsByDate(updatedCalls)
@@ -347,12 +347,19 @@ class RecentsFragment(
         )
     }
 
-    private fun applyNumberNames(calls: List<RecentCall>): List<RecentCall> {
+    private fun applyNumberNames(calls: List<RecentCall>, contacts: List<Contact>): List<RecentCall> {
         val getNumberName = context.getNumberNameLookup()
         return calls.map { call ->
             val isNotContact = call.name == call.phoneNumber && !call.isUnknownNumber
             val name = if (isNotContact) getNumberName(call.phoneNumber) else null
-            if (name != null) withNumberName(call, name) else call
+            // a contact holding the number in any position wins, like on the call screen. Only named numbers are
+            // checked, as the full comparison is too slow for the whole call history
+            val contact = if (name != null) contacts.firstOrNull { it.doesHavePhoneNumber(call.phoneNumber) } else null
+            when {
+                contact != null -> withUpdatedName(call, contact.getNameToDisplay())
+                name != null -> withNumberName(call, name)
+                else -> call
+            }
         }
     }
 
