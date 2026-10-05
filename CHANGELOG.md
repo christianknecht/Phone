@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to name numbers that aren't contacts, stored only in the app ([#858])
 - Missed call notification from the app, with the time and the SIM that received the call, and an option to call back with the number's default SIM ([#83], [#839])
 - Option to silence an incoming call by flipping the phone face down ([#65])
+- Select all and deselect all in the contact sources filter
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb

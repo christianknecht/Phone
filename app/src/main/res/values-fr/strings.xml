@@ -87,6 +87,7 @@
     <string name="missed_calls_channel">Appels manqués</string>
     <string name="missed_call">Appel manqué</string>
     <string name="call_back">Rappeler</string>
+    <string name="deselect_all">Tout désélectionner</string>
     <plurals name="missed_calls_count">
         <item quantity="one">%d appel manqué</item>
         <item quantity="many">%d appels manqués</item>

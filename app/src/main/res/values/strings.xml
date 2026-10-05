@@ -73,6 +73,7 @@
     <string name="missed_calls_channel">Missed calls</string>
     <string name="missed_call">Missed call</string>
     <string name="call_back">Call back</string>
+    <string name="deselect_all">Deselect all</string>
     <plurals name="missed_calls_count">
         <item quantity="one">%d missed call</item>
         <item quantity="other">%d missed calls</item>

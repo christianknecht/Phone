@@ -13,7 +13,8 @@ import org.fossify.phone.databinding.ItemFilterContactSourceBinding
 class FilterContactSourcesAdapter(
     val activity: SimpleActivity,
     private val contactSources: List<ContactSource>,
-    ignoredContactSources: Set<String>
+    ignoredContactSources: Set<String>,
+    private val onSelectionChanged: () -> Unit = {}
 ) : RecyclerView.Adapter<FilterContactSourcesAdapter.ViewHolder>() {
 
     private val selectedKeys = HashSet<Int>()
@@ -35,9 +36,24 @@ class FilterContactSourcesAdapter(
         }
 
         notifyItemChanged(position)
+        onSelectionChanged()
     }
 
     fun getSelectedContactSources() = contactSources.filter { selectedKeys.contains(it.hashCode()) }
+
+    fun hasSelection() = selectedKeys.isNotEmpty()
+
+    fun areAllSelected() = contactSources.all { selectedKeys.contains(it.hashCode()) }
+
+    fun setAllSelected(select: Boolean) {
+        selectedKeys.clear()
+        if (select) {
+            contactSources.mapTo(selectedKeys) { it.hashCode() }
+        }
+
+        notifyItemRangeChanged(0, itemCount)
+        onSelectionChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemFilterContactSourceBinding.inflate(activity.layoutInflater, parent, false)

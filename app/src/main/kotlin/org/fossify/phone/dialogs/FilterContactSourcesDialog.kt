@@ -11,6 +11,7 @@ import android.provider.ContactsContract.RawContacts
 import androidx.appcompat.app.AlertDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.ContactsHelper
+import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.models.contacts.ContactSource
@@ -46,7 +47,6 @@ class FilterContactSourcesDialog(val activity: SimpleActivity, private val callb
     private fun prepareContactSources(sources: ArrayList<ContactSource>) {
         val accountsWithContacts = getAccountsWithContacts()
         val phoneContactCounts = getPhoneContactCounts()
-        val privateCount = getPrivateContactsCount()
 
         val ignoredSources = activity.config.ignoredContactSources
         val shownSources = ArrayList<ContactSource>()
@@ -57,8 +57,7 @@ class FilterContactSourcesDialog(val activity: SimpleActivity, private val callb
                     hiddenIgnoredSources.add(identifier)
                 }
             } else {
-                val count = if (source.type == SMT_PRIVATE) privateCount else phoneContactCounts[identifier] ?: 0
-                shownSources.add(source.copy(count = count))
+                shownSources.add(source.copy(count = phoneContactCounts[identifier] ?: 0))
             }
         }
 
@@ -67,16 +66,41 @@ class FilterContactSourcesDialog(val activity: SimpleActivity, private val callb
 
     private fun showDialog() {
         val ignoredSources = activity.config.ignoredContactSources
-        binding.filterContactSourcesList.adapter = FilterContactSourcesAdapter(activity, contactSources, ignoredSources)
+        val adapter = FilterContactSourcesAdapter(activity, contactSources, ignoredSources) { updateButtons() }
+        binding.filterContactSourcesList.adapter = adapter
 
         activity.getAlertDialogBuilder()
             .setPositiveButton(R.string.ok) { _, _ -> confirmContactSources() }
             .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(org.fossify.commons.R.string.select_all, null)
             .apply {
                 activity.setupDialogStuff(binding.root, this) { alertDialog ->
                     dialog = alertDialog
+                    // set here so that the button doesn't close the dialog
+                    alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        adapter.setAllSelected(!adapter.areAllSelected())
+                    }
+                    updateButtons()
                 }
             }
+    }
+
+    // one button toggles between selecting and deselecting everything, and OK needs at least one source,
+    // as nothing selected would only leave empty lists
+    private fun updateButtons() {
+        val adapter = binding.filterContactSourcesList.adapter as? FilterContactSourcesAdapter ?: return
+        val alertDialog = dialog ?: return
+        val toggleText = if (adapter.areAllSelected()) {
+            R.string.deselect_all
+        } else {
+            org.fossify.commons.R.string.select_all
+        }
+        alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setText(toggleText)
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+            isEnabled = adapter.hasSelection()
+            // the dialog buttons get a fixed text color, so show the disabled state with the alpha
+            alpha = if (isEnabled) 1f else MEDIUM_ALPHA
+        }
     }
 
     // an account that can't sync contacts and has none stored can't add anything to the list, so it isn't offered
@@ -141,7 +165,7 @@ class FilterContactSourcesDialog(val activity: SimpleActivity, private val callb
         return accounts
     }
 
-    // how many contacts with a phone number each account has, by full identifier, like the Contacts tab lists them
+    // how many contacts with a phone number each source has, by full identifier, like the Contacts tab lists them
     private fun getPhoneContactCounts(): Map<String, Int> {
         val rawContactsPerAccount = HashMap<String, HashSet<Long>>()
         val projection = arrayOf(Data.RAW_CONTACT_ID, RawContacts.ACCOUNT_NAME, RawContacts.ACCOUNT_TYPE)
@@ -151,12 +175,12 @@ class FilterContactSourcesDialog(val activity: SimpleActivity, private val callb
             val rawContactIds = rawContactsPerAccount.getOrPut(getIdentifier(cursor)) { HashSet() }
             rawContactIds.add(cursor.getLongValue(Data.RAW_CONTACT_ID))
         }
-        return rawContactsPerAccount.mapValues { it.value.size }
-    }
+        val counts = rawContactsPerAccount.mapValuesTo(HashMap()) { it.value.size }
 
-    private fun getPrivateContactsCount(): Int {
+        // the contacts stored in the app itself
         val privateCursor = activity.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-        return MyContactsContentProvider.getContacts(activity, privateCursor).size
+        counts[SMT_PRIVATE] = MyContactsContentProvider.getContacts(activity, privateCursor).size
+        return counts
     }
 
     // matches ContactSource.getFullIdentifier(), the local phone storage has an empty name and type
