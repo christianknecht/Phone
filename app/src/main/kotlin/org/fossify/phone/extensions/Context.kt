@@ -17,6 +17,7 @@ import android.telecom.TelecomManager
 import androidx.core.net.toUri
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.launchActivityIntent
+import org.fossify.commons.extensions.notificationManager
 import org.fossify.commons.extensions.telecomManager
 import org.fossify.commons.helpers.KEY_PHONE
 import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
@@ -75,9 +76,17 @@ fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
  * "take over the ringer?" decision, otherwise the screening service fails to silence and the system
  * ringtone plays on top of ours. Which ringtone to play (per SIM) is decided later, in the
  * InCallService, where the handle is available.
+ *
+ * Do Not Disturb: once we silence it, the system ringer no longer applies the DND rules for us, so we
+ * only take over when DND is off or lets this caller through. In every other case the system ringer
+ * is left alone and applies DND (priority contacts, repeat callers...) exactly as without this feature.
  */
 fun Context.shouldPlayCustomRingtone(number: String?): Boolean {
     if (!isQPlus() || !config.perSimRingtonesEnabled) {
+        return false
+    }
+
+    if (!notificationManager.isCallAllowedByDnd(number, hasPermission(PERMISSION_READ_CONTACTS))) {
         return false
     }
 

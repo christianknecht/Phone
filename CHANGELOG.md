@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Option to set the default SIM for a number from the contact and call log menus
 
+### Fixed
+- Fixed per-SIM ringtones ringing through Do Not Disturb
+
 ## [1.11.1] - 2026-02-01
 ### Changed
 - Updated translations
