@@ -6,7 +6,6 @@ import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
-import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.models.contacts.ContactSource
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.databinding.ItemFilterContactSourceBinding
@@ -14,18 +13,15 @@ import org.fossify.phone.databinding.ItemFilterContactSourceBinding
 class FilterContactSourcesAdapter(
     val activity: SimpleActivity,
     private val contactSources: List<ContactSource>,
-    private val displayContactSources: ArrayList<String>
+    ignoredContactSources: Set<String>
 ) : RecyclerView.Adapter<FilterContactSourcesAdapter.ViewHolder>() {
 
     private val selectedKeys = HashSet<Int>()
 
     init {
-        contactSources.forEachIndexed { index, contactSource ->
-            if (displayContactSources.contains(contactSource.name)) {
-                selectedKeys.add(contactSource.hashCode())
-            }
-
-            if (contactSource.type == SMT_PRIVATE && displayContactSources.contains(SMT_PRIVATE)) {
+        // by full identifier, two accounts with the same name but a different type are filtered separately
+        contactSources.forEach { contactSource ->
+            if (contactSource.getFullIdentifier() !in ignoredContactSources) {
                 selectedKeys.add(contactSource.hashCode())
             }
         }

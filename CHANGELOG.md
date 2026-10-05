@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A number opened from a link and the last called number show in the dialpad without waiting for the contacts
 - Fixed the SIM selector not showing for calls started from a car or a headset ([#473])
 - The call screen and call notification show the new name of a caller added or edited in the contacts during the call
+- Fixed the same account showing twice in the contact sources filter, and accounts that have no contacts showing there
 
 ## [1.11.1] - 2026-02-01
 ### Changed
