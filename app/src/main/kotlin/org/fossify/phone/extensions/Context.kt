@@ -25,6 +25,7 @@ import org.fossify.commons.helpers.PERMISSION_READ_CONTACTS
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.phone.helpers.Config
+import org.fossify.phone.helpers.MissedCallNotifier
 import org.fossify.phone.models.SIMAccount
 
 val Context.config: Config get() = Config.newInstance(applicationContext)
@@ -147,9 +148,12 @@ fun Context.areMultipleSIMsAvailable(): Boolean {
 
 fun Context.clearMissedCalls() {
     ensureBackgroundThread {
+        // the app posts the missed call notification itself (see MissedCallReceiver), and in that case Telecom
+        // leaves the call log alone, so mark the missed calls as read here
+        markMissedCallsAsRead()
+        MissedCallNotifier(applicationContext).cancelNotification()
         try {
-            // notification cancellation triggers MissedCallNotifier.clearMissedCalls() which, in turn,
-            // should update the database and reset the cached missed call count in MissedCallNotifier.java
+            // resets the missed call count cached by Telecom, which then sends us a count of 0
             // https://android.googlesource.com/platform/packages/services/Telecomm/+/master/src/com/android/server/telecom/ui/MissedCallNotifierImpl.java#170
             telecomManager.cancelMissedCallsNotification()
         } catch (ignored: Exception) {

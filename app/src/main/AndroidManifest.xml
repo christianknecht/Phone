@@ -168,6 +168,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".activities.MissedCallActionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Transparent" />
+
         <service
             android:name=".services.CallService"
             android:enabled="true"
@@ -195,6 +203,15 @@
             android:name=".receivers.CallActionReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- Telecom sends this to the default dialer instead of posting its own missed call notification -->
+        <receiver
+            android:name=".receivers.MissedCallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.action.SHOW_MISSED_CALLS_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
         <activity-alias
             android:name=".activities.SplashActivity.Red"

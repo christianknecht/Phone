@@ -170,6 +170,16 @@ class MainActivity : SimpleActivity() {
         }
     }
 
+    // the missed call notification reuses this screen when it is already on top
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_VIEW && config.showTabs and TAB_CALL_HISTORY > 0) {
+            binding.mainTabsHolder.getTabAt(binding.mainTabsHolder.tabCount - 1)?.select()
+            clearMissedCalls()
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(OPEN_DIAL_PAD_AT_LAUNCH, launchedDialer)
@@ -393,6 +403,7 @@ class MainActivity : SimpleActivity() {
                 // open the Recents tab if we got here by clicking a missed call notification
                 if (intent.action == Intent.ACTION_VIEW && config.showTabs and TAB_CALL_HISTORY > 0) {
                     wantedTab = binding.mainTabsHolder.tabCount - 1
+                    clearMissedCalls()
                 }
 
                 binding.mainTabsHolder.getTabAt(wantedTab)?.select()

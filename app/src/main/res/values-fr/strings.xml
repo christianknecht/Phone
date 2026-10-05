@@ -82,4 +82,12 @@
     <string name="calling_accounts">Comptes d\'appel</string>
     <string name="name_this_number">Nommer ce numéro</string>
     <string name="edit_number_name">Modifier le nom</string>
+    <string name="missed_calls_channel">Appels manqués</string>
+    <string name="missed_call">Appel manqué</string>
+    <string name="call_back">Rappeler</string>
+    <plurals name="missed_calls_count">
+        <item quantity="one">%d appel manqué</item>
+        <item quantity="many">%d appels manqués</item>
+        <item quantity="other">%d appels manqués</item>
+    </plurals>
 </resources>

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Format the number while dialing ([#104])
 - Option to show favorites at the top of the call history ([#882])
 - Option to name numbers that aren't contacts, stored only in the app ([#858])
+- Missed call notification from the app, with the time and the SIM that received the call ([#83], [#839])
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
@@ -242,6 +243,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#67]: https://github.com/FossifyOrg/Phone/issues/67
 [#80]: https://github.com/FossifyOrg/Phone/issues/80
 [#81]: https://github.com/FossifyOrg/Phone/issues/81
+[#83]: https://github.com/FossifyOrg/Phone/issues/83
 [#88]: https://github.com/FossifyOrg/Phone/issues/88
 [#94]: https://github.com/FossifyOrg/Phone/issues/94
 [#96]: https://github.com/FossifyOrg/Phone/issues/96
@@ -280,6 +282,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#631]: https://github.com/FossifyOrg/Phone/issues/631
 [#645]: https://github.com/FossifyOrg/Phone/issues/645
 [#696]: https://github.com/FossifyOrg/Phone/issues/696
+[#839]: https://github.com/FossifyOrg/Phone/issues/839
 [#858]: https://github.com/FossifyOrg/Phone/issues/858
 [#882]: https://github.com/FossifyOrg/Phone/issues/882
 

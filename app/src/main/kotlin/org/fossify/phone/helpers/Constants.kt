@@ -32,5 +32,12 @@ val tabsList = arrayListOf(TAB_CONTACTS, TAB_FAVORITES, TAB_CALL_HISTORY)
 private const val PATH = "org.fossify.phone.action."
 const val ACCEPT_CALL = PATH + "ACCEPT_CALL"
 const val DECLINE_CALL = PATH + "DECLINE_CALL"
+const val MISSED_CALLS_DISMISSED = PATH + "MISSED_CALLS_DISMISSED"
+const val MISSED_CALL_BACK = PATH + "MISSED_CALL_BACK"
+const val MISSED_CALL_MESSAGE = PATH + "MISSED_CALL_MESSAGE"
+
+// missed call notification action extras
+const val MISSED_CALL_NUMBER = "missed_call_number"
+const val MISSED_CALL_SIM_HANDLE = "missed_call_sim_handle"
 
 const val DIALPAD_TONE_LENGTH_MS = 150L // The length of DTMF tones in milliseconds

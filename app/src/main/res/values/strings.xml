@@ -69,6 +69,15 @@
     <string name="call_notification_channel">Call status</string>
     <string name="call_notification_channel_high_priority">Call status (high priority)</string>
 
+    <!-- Missed calls -->
+    <string name="missed_calls_channel">Missed calls</string>
+    <string name="missed_call">Missed call</string>
+    <string name="call_back">Call back</string>
+    <plurals name="missed_calls_count">
+        <item quantity="one">%d missed call</item>
+        <item quantity="other">%d missed calls</item>
+    </plurals>
+
     <!-- Speed dial -->
     <string name="speed_dial">Speed dial</string>
     <string name="manage_speed_dial">Manage speed dial</string>
