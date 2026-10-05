@@ -164,6 +164,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(ASK_SIM_BEFORE_CALL, true)
         set(value) = prefs.edit { putBoolean(ASK_SIM_BEFORE_CALL, value) }
 
+    var callBackWithNumberSim: Boolean
+        get() = prefs.getBoolean(CALL_BACK_WITH_NUMBER_SIM, false)
+        set(value) = prefs.edit { putBoolean(CALL_BACK_WITH_NUMBER_SIM, value) }
+
     // the date of the newest missed call the user has been alerted about, so it doesn't ring again
     var lastNotifiedMissedCallDate: Long
         get() = prefs.getLong(LAST_NOTIFIED_MISSED_CALL_DATE, 0L)

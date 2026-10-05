@@ -139,6 +139,7 @@ class SettingsActivity : SimpleActivity() {
         setupAlwaysShowFullscreen()
         setupFlipToSilence()
         setupAskSimBeforeCall()
+        setupCallBackWithNumberSim()
         setupPerSimRingtones()
         setupManageSimRingtones()
         setupCallsExport()
@@ -445,6 +446,17 @@ class SettingsActivity : SimpleActivity() {
             settingsAskSimBeforeCallHolder.setOnClickListener {
                 settingsAskSimBeforeCall.toggle()
                 config.askSimBeforeCall = settingsAskSimBeforeCall.isChecked
+            }
+        }
+    }
+
+    private fun setupCallBackWithNumberSim() {
+        binding.apply {
+            settingsCallBackWithNumberSimHolder.beVisibleIf(areMultipleSIMsAvailable())
+            settingsCallBackWithNumberSim.isChecked = config.callBackWithNumberSim
+            settingsCallBackWithNumberSimHolder.setOnClickListener {
+                settingsCallBackWithNumberSim.toggle()
+                config.callBackWithNumberSim = settingsCallBackWithNumberSim.isChecked
             }
         }
     }
