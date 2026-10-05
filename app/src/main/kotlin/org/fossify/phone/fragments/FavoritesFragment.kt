@@ -17,6 +17,7 @@ import org.fossify.commons.models.contacts.Contact
 import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.commons.views.MyLinearLayoutManager
 import org.fossify.phone.R
+import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentFavoritesBinding
@@ -118,6 +119,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                         val items = adapter.contacts
                         saveCustomOrderToPrefs(items)
                         setupLetterFastScroller(items)
+                        (activity as? MainActivity)?.refreshCallHistoryFavorites()
                     }
                 }
 

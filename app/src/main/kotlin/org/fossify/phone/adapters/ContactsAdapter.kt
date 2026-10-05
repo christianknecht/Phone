@@ -29,6 +29,7 @@ import org.fossify.commons.interfaces.StartReorderDragListener
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.phone.R
+import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSim
@@ -308,6 +309,8 @@ class ContactsAdapter(
 
         SimpleContactsHelper(activity).deleteContactRawIDs(idsToRemove) {
             activity.runOnUiThread {
+                // a deleted contact may have been a favorite shown in the call history
+                (activity as? MainActivity)?.refreshCallHistoryFavorites()
                 if (contacts.isEmpty()) {
                     refreshItemsListener?.refreshItems()
                     finishActMode()

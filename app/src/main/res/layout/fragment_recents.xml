@@ -5,6 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <org.fossify.commons.views.MyRecyclerView
+        android:id="@+id/recents_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:layoutAnimation="@anim/layout_animation"
+        android:paddingBottom="@dimen/recyclerview_fab_padding"
+        android:scrollbars="none"
+        app:layoutManager="org.fossify.commons.views.MyLinearLayoutManager" />
+
+    <!-- after the list, so that the access button stays tappable under the favorites strip -->
     <org.fossify.commons.views.MyTextView
         android:id="@+id/recents_placeholder"
         android:layout_width="match_parent"
@@ -32,16 +43,6 @@
         android:text="@string/request_access"
         android:textSize="@dimen/bigger_text_size"
         android:visibility="gone" />
-
-    <org.fossify.commons.views.MyRecyclerView
-        android:id="@+id/recents_list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:layoutAnimation="@anim/layout_animation"
-        android:paddingBottom="@dimen/recyclerview_fab_padding"
-        android:scrollbars="none"
-        app:layoutManager="org.fossify.commons.views.MyLinearLayoutManager" />
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/progress_indicator"

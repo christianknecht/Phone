@@ -742,14 +742,8 @@ class RecentCallsDiffCallback : DiffUtil.ItemCallback<CallLogItem>() {
     override fun areContentsTheSame(oldItem: CallLogItem, newItem: CallLogItem): Boolean {
         return when {
             oldItem is CallLogItem.Date && newItem is CallLogItem.Date -> oldItem.timestamp == newItem.timestamp && oldItem.dayCode == newItem.dayCode
-            oldItem is CallLogItem.Favorites && newItem is CallLogItem.Favorites -> {
-                oldItem.contacts.size == newItem.contacts.size &&
-                        oldItem.contacts.zip(newItem.contacts).all { (old, new) ->
-                            old.id == new.id &&
-                                    old.getNameToDisplay() == new.getNameToDisplay() &&
-                                    old.photoUri == new.photoUri
-                        }
-            }
+            // whole contacts are compared, numbers included, as tapping one calls the numbers it holds
+            oldItem is CallLogItem.Favorites && newItem is CallLogItem.Favorites -> oldItem == newItem
 
             oldItem is RecentCall && newItem is RecentCall -> {
                 oldItem.phoneNumber == newItem.phoneNumber &&

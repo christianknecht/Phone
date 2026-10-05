@@ -515,6 +515,11 @@ class MainActivity : SimpleActivity() {
         cacheContacts()
     }
 
+    // the call history can show the favorites too, see Config.showFavoritesInCallHistory
+    fun refreshCallHistoryFavorites() {
+        getRecentsFragment()?.refreshFavorites()
+    }
+
     private fun getAllFragments(): ArrayList<MyViewPagerFragment<*>?> {
         val showTabs = config.showTabs
         val fragments = arrayListOf<MyViewPagerFragment<*>?>()

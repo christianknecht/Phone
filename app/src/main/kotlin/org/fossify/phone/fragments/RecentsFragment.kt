@@ -2,6 +2,7 @@ package org.fossify.phone.fragments
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.ViewGroup
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beGoneIf
@@ -45,6 +46,7 @@ class RecentsFragment(
     // shown above the call log when enabled, empty otherwise
     @Volatile
     private var favoriteContacts = listOf<Contact>()
+    private var showsOnlyFavorites = false
 
     private var searchQuery: String? = null
     private var recentsHelper = RecentsHelper(context)
@@ -67,6 +69,16 @@ class RecentsFragment(
             underlineText()
             setOnClickListener {
                 requestCallLogPermission()
+            }
+        }
+
+        // with no calls, the favorites strip is the only item of the list and the placeholders go below it
+        binding.recentsList.viewTreeObserver.addOnGlobalLayoutListener {
+            val stripBottom = if (showsOnlyFavorites) binding.recentsList.getChildAt(0)?.bottom ?: 0 else 0
+            val params = binding.recentsPlaceholder.layoutParams as ViewGroup.MarginLayoutParams
+            if (params.topMargin != stripBottom) {
+                params.topMargin = stripBottom
+                binding.recentsPlaceholder.layoutParams = params
             }
         }
     }
@@ -95,8 +107,25 @@ class RecentsFragment(
 
     override fun onSearchClosed() {
         searchQuery = null
-        showOrHidePlaceholder(allRecentCalls.isEmpty())
-        recentsAdapter?.updateItems(withFavorites(allRecentCalls))
+        showCallLog(allRecentCalls)
+    }
+
+    /** Reloads only the favorites strip, after the favorites were reordered or deleted elsewhere in the app. */
+    fun refreshFavorites() {
+        if (!context.config.showFavoritesInCallHistory) {
+            return
+        }
+
+        SharedContactsLoader.getContacts(context) { contacts ->
+            ensureBackgroundThread {
+                favoriteContacts = context.getFavoriteContacts(contacts)
+                activity?.runOnUiThread {
+                    if (searchQuery.isNullOrEmpty() && !binding.progressIndicator.isVisible()) {
+                        showCallLog(allRecentCalls)
+                    }
+                }
+            }
+        }
     }
 
     override fun onSearchQueryChanged(text: String) {
@@ -121,6 +150,7 @@ class RecentsFragment(
 
             prepareCallLog(recentCalls) {
                 activity?.runOnUiThread {
+                    showsOnlyFavorites = false
                     showOrHidePlaceholder(recentCalls.isEmpty())
                     recentsAdapter?.updateItems(it, fixedText)
                 }
@@ -148,19 +178,20 @@ class RecentsFragment(
 
     private fun gotRecents(recents: List<CallLogItem>) {
         binding.progressIndicator.hide()
-        if (recents.isEmpty()) {
-            binding.apply {
-                showOrHidePlaceholder(true)
-                recentsPlaceholder2.beGoneIf(context.hasPermission(PERMISSION_READ_CALL_LOG))
-                recentsList.beGone()
-            }
-        } else {
-            binding.apply {
-                showOrHidePlaceholder(false)
-                recentsPlaceholder2.beGone()
-                recentsList.beVisible()
-            }
+        showCallLog(recents)
+    }
 
+    // the favorites strip stays visible above the placeholders when there are no calls, or no access to them
+    private fun showCallLog(recents: List<CallLogItem>) {
+        val items = withFavorites(recents)
+        showsOnlyFavorites = recents.isEmpty() && items.isNotEmpty()
+        binding.apply {
+            showOrHidePlaceholder(recents.isEmpty())
+            recentsPlaceholder2.beGoneIf(recents.isNotEmpty() || context.hasPermission(PERMISSION_READ_CALL_LOG))
+            recentsList.beGoneIf(items.isEmpty())
+        }
+
+        if (items.isNotEmpty()) {
             if (binding.recentsList.adapter == null) {
                 recentsAdapter = RecentCallsAdapter(
                     activity = activity as SimpleActivity,
@@ -191,7 +222,7 @@ class RecentsFragment(
                 binding.recentsList.adapter = recentsAdapter
             }
 
-            recentsAdapter?.updateItems(withFavorites(recents))
+            recentsAdapter?.updateItems(items)
         }
     }
 
@@ -211,15 +242,17 @@ class RecentsFragment(
     private fun getRecentCalls(loadAll: Boolean, callback: (List<CallLogItem>) -> Unit) {
         val queryCount = if (loadAll) Int.MAX_VALUE else RecentsHelper.QUERY_LIMIT
         val existingRecentCalls = allRecentCalls.filterIsInstance<RecentCall>()
+        // the favorites are loaded once per refresh, by its first and quicker pass
+        val loadFavorites = !loadAll
 
         with(recentsHelper) {
             if (context.config.groupSubsequentCalls) {
                 getGroupedRecentCalls(existingRecentCalls, queryCount) {
-                    prepareCallLog(it, loadFavorites = true, callback)
+                    prepareCallLog(it, loadFavorites, callback)
                 }
             } else {
                 getRecentCalls(existingRecentCalls, queryCount) {
-                    prepareCallLog(it, loadFavorites = true, callback)
+                    prepareCallLog(it, loadFavorites, callback)
                 }
             }
         }
@@ -230,19 +263,27 @@ class RecentsFragment(
         loadFavorites: Boolean = false,
         callback: (List<CallLogItem>) -> Unit,
     ) {
-        if (calls.isEmpty()) {
+        val showFavorites = context.config.showFavoritesInCallHistory
+        if (loadFavorites && !showFavorites) {
+            favoriteContacts = emptyList()
+        }
+
+        // with no calls, the favorites are still loaded to be shown above the placeholder
+        val needsFavorites = loadFavorites && showFavorites
+        if (calls.isEmpty() && !needsFavorites) {
             callback(emptyList())
             return
         }
 
         SharedContactsLoader.getContacts(context) { contacts ->
             ensureBackgroundThread {
-                if (loadFavorites) {
-                    favoriteContacts = if (context.config.showFavoritesInCallHistory) {
-                        context.getFavoriteContacts(contacts)
-                    } else {
-                        emptyList()
-                    }
+                if (needsFavorites) {
+                    favoriteContacts = context.getFavoriteContacts(contacts)
+                }
+
+                if (calls.isEmpty()) {
+                    callback(emptyList())
+                    return@ensureBackgroundThread
                 }
 
                 val privateContacts = getPrivateContacts()
@@ -350,7 +391,7 @@ class RecentsFragment(
     // the favorites strip scrolls with the call log, as its first item, but is left out of search results
     private fun withFavorites(callLog: List<CallLogItem>): List<CallLogItem> {
         val favorites = favoriteContacts
-        return if (favorites.isEmpty() || callLog.isEmpty()) {
+        return if (favorites.isEmpty()) {
             callLog
         } else {
             listOf(CallLogItem.Favorites(favorites)) + callLog
