@@ -24,7 +24,6 @@ import org.fossify.phone.databinding.FragmentRecentsBinding
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getFavoriteContacts
 import org.fossify.phone.extensions.getNumberNameLookup
-import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.runAfterAnimations
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
@@ -215,7 +214,8 @@ class RecentsFragment(
                             activity?.startAddContactIntent(recentCall.phoneNumber, name)
                         }
                     },
-                    favoriteClick = { activity?.handleGenericContactClick(it) },
+                    // the strip is a shortcut for calling, so ignore the "on contact click" setting here
+                    favoriteClick = { activity?.startCallWithConfirmationCheck(it) },
                     favoriteLongClick = { activity?.startContactDetailsIntent(it) }
                 )
 
