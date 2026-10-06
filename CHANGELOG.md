@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A loading indicator shows while the contacts load, instead of "No contacts found"
 - The call history no longer keeps the phone busy for many seconds after opening the app with many contacts and calls
 - Opening the app loads the contacts once instead of up to four times
+- Fixed the letters of the contacts fast scroller being out of order with contacts that have a prefix like "Dr"
 
 ## [1.11.1] - 2026-02-01
 ### Changed
