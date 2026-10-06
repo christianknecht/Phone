@@ -44,6 +44,7 @@ import org.fossify.commons.models.RadioItem
 import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
+import org.fossify.phone.dialogs.ManageCallLogFiltersDialog
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.canLaunchAccountsConfiguration
@@ -128,6 +129,7 @@ class SettingsActivity : SimpleActivity() {
         setupDialPadOpen()
         setupGroupSubsequentCalls()
         setupShowFavoritesInCallHistory()
+        setupCallLogFilters()
         setupStartNameWithSurname()
         setupIgnoreNamePrefixes()
         setupShowContactAccounts()
@@ -330,6 +332,24 @@ class SettingsActivity : SimpleActivity() {
                 settingsGroupSubsequentCalls.toggle()
                 config.groupSubsequentCalls = settingsGroupSubsequentCalls.isChecked
             }
+        }
+    }
+
+    private fun setupCallLogFilters() {
+        updateCallLogFiltersText()
+        binding.settingsCallLogFiltersHolder.setOnClickListener {
+            ManageCallLogFiltersDialog(this) {
+                updateCallLogFiltersText()
+            }
+        }
+    }
+
+    private fun updateCallLogFiltersText() {
+        val filters = config.callLogFilters
+        binding.settingsCallLogFilters.text = if (filters.isEmpty()) {
+            getString(R.string.none)
+        } else {
+            filters.joinToString { getString(it.labelResId) }
         }
     }
 

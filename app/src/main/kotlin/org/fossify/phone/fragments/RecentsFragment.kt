@@ -1,12 +1,21 @@
 package org.fossify.phone.fragments
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.util.AttributeSet
+import android.view.LayoutInflater
 import android.view.ViewGroup
+import com.google.android.material.chip.Chip
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beVisible
+import org.fossify.commons.extensions.beVisibleIf
+import org.fossify.commons.extensions.getContrastColor
+import org.fossify.commons.extensions.getProperPrimaryColor
+import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.getMyContactsCursor
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.isVisible
@@ -21,7 +30,9 @@ import org.fossify.phone.activities.MainActivity
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.RecentCallsAdapter
 import org.fossify.phone.databinding.FragmentRecentsBinding
+import org.fossify.phone.databinding.ItemCallLogFilterBinding
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getAvailableSIMCardLabels
 import org.fossify.phone.extensions.getFavoriteContacts
 import org.fossify.phone.extensions.getNumberNameLookup
 import org.fossify.phone.extensions.runAfterAnimations
@@ -29,10 +40,13 @@ import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.helpers.ContactsByNumberIndex
+import org.fossify.phone.helpers.FavoriteNumbers
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
+import org.fossify.phone.models.CallLogFilter
 import org.fossify.phone.models.CallLogItem
+import org.fossify.phone.models.SelectedCallLogFilter
 import org.fossify.phone.models.RecentCall
 
 class RecentsFragment(
@@ -49,6 +63,14 @@ class RecentsFragment(
     private var showsOnlyFavorites = false
 
     private var searchQuery: String? = null
+    private var selectedFilter = SelectedCallLogFilter(CallLogFilter.ALL)
+
+    // the filters and labels the chips were made for, to remake them after a change in the settings
+    private var shownFilters = listOf<Pair<SelectedCallLogFilter, String>>()
+
+    // the numbers of the favorites, when the favorites filter is shown
+    @Volatile
+    private var favoriteNumbers: FavoriteNumbers? = null
     private var recentsHelper = RecentsHelper(context)
 
     // a refresh asked while one is running is done once it ends, instead of both reading the whole call history at the
@@ -61,6 +83,19 @@ class RecentsFragment(
         super.onFinishInflate()
         binding = FragmentRecentsBinding.bind(this)
         innerBinding = RecentsInnerBinding(binding)
+
+        binding.recentsFilters.setOnCheckedStateChangeListener { group, checkedIds ->
+            val chip = checkedIds.firstOrNull()?.let { group.findViewById<Chip>(it) }
+            val filter = chip?.tag as? SelectedCallLogFilter ?: return@setOnCheckedStateChangeListener
+            if (filter != selectedFilter) {
+                selectedFilter = filter
+                if (searchQuery.isNullOrEmpty()) {
+                    showCallLog(allRecentCalls)
+                } else {
+                    updateSearchResult()
+                }
+            }
+        }
     }
 
     override fun setupFragment() {
@@ -92,11 +127,86 @@ class RecentsFragment(
     override fun setupColors(textColor: Int, primaryColor: Int, properPrimaryColor: Int) {
         binding.recentsPlaceholder.setTextColor(textColor)
         binding.recentsPlaceholder2.setTextColor(properPrimaryColor)
+        setupFilterColors()
 
         recentsAdapter?.apply {
             updateTextColor(textColor)
             initDrawables()
         }
+    }
+
+    // "all calls" first, then the filters chosen in the settings, with one filter per SIM
+    private fun getShownFilters(): List<Pair<SelectedCallLogFilter, String>> {
+        val filters = context.config.callLogFilters.flatMap { filter ->
+            if (filter == CallLogFilter.SIM) {
+                val sims = context.getAvailableSIMCardLabels()
+                if (sims.size > 1) {
+                    sims.map { SelectedCallLogFilter(filter, it.id) to it.label }
+                } else {
+                    emptyList()
+                }
+            } else {
+                listOf(SelectedCallLogFilter(filter) to context.getString(filter.labelResId))
+            }
+        }
+
+        return if (filters.isEmpty()) {
+            emptyList()
+        } else {
+            listOf(SelectedCallLogFilter(CallLogFilter.ALL) to context.getString(R.string.all_calls)) + filters
+        }
+    }
+
+    private fun updateFilters() {
+        val filters = getShownFilters()
+        if (filters == shownFilters) {
+            return
+        }
+
+        shownFilters = filters
+        if (filters.none { it.first == selectedFilter }) {
+            selectedFilter = SelectedCallLogFilter(CallLogFilter.ALL)
+        }
+
+        val inflater = LayoutInflater.from(context)
+        binding.recentsFilters.removeAllViews()
+        filters.forEach { (filter, label) ->
+            // the group keeps track of its chips by id, so the id is set before adding them
+            val chip = ItemCallLogFilterBinding.inflate(inflater, binding.recentsFilters, false).root
+            chip.id = generateViewId()
+            chip.tag = filter
+            chip.text = label
+            binding.recentsFilters.addView(chip)
+            if (filter == selectedFilter) {
+                binding.recentsFilters.check(chip.id)
+            }
+        }
+
+        setupFilterColors()
+    }
+
+    private fun setupFilterColors() {
+        val textColor = context.getProperTextColor()
+        val properPrimaryColor = context.getProperPrimaryColor()
+        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+        val backgroundColors = ColorStateList(states, intArrayOf(properPrimaryColor, Color.TRANSPARENT))
+        val textColors = ColorStateList(states, intArrayOf(properPrimaryColor.getContrastColor(), textColor))
+        val strokeColors = ColorStateList(
+            states,
+            intArrayOf(properPrimaryColor, textColor.adjustAlpha(FILTER_STROKE_ALPHA))
+        )
+
+        for (i in 0 until binding.recentsFilters.childCount) {
+            (binding.recentsFilters.getChildAt(i) as? Chip)?.apply {
+                chipBackgroundColor = backgroundColors
+                chipStrokeColor = strokeColors
+                setTextColor(textColors)
+            }
+        }
+    }
+
+    private fun matchesSelectedFilter(call: RecentCall): Boolean {
+        return selectedFilter.matches(call) { favoriteNumbers?.contains(it.phoneNumber) == true }
     }
 
     override fun refreshItems(invalidate: Boolean, callback: (() -> Unit)?) {
@@ -137,13 +247,15 @@ class RecentsFragment(
 
     /** Reloads only the favorites strip, after the favorites were reordered or deleted elsewhere in the app. */
     fun refreshFavorites() {
-        if (!context.config.showFavoritesInCallHistory) {
+        val showFavorites = context.config.showFavoritesInCallHistory
+        val filtersByFavorites = CallLogFilter.FAVORITES in context.config.callLogFilters
+        if (!showFavorites && !filtersByFavorites) {
             return
         }
 
         SharedContactsLoader.getContacts(context) { contacts ->
             ensureBackgroundThread {
-                favoriteContacts = context.getFavoriteContacts(contacts)
+                updateFavorites(contacts, showFavorites, filtersByFavorites)
                 activity?.runOnUiThread {
                     if (searchQuery.isNullOrEmpty() && !binding.progressIndicator.isVisible()) {
                         showCallLog(allRecentCalls)
@@ -162,8 +274,7 @@ class RecentsFragment(
     private fun updateSearchResult() {
         ensureBackgroundThread {
             val fixedText = searchQuery!!.trim().replace("\\s+".toRegex(), " ")
-            val recentCalls = allRecentCalls
-                .filterIsInstance<RecentCall>()
+            val recentCalls = keepCalls(allRecentCalls, ::matchesSelectedFilter)
                 .filter {
                     it.name.contains(fixedText, true) || it.doesContainPhoneNumber(fixedText)
                 }
@@ -207,12 +318,24 @@ class RecentsFragment(
     }
 
     // the favorites strip stays visible above the placeholders when there are no calls, or no access to them
-    private fun showCallLog(recents: List<CallLogItem>) {
+    private fun showCallLog(allRecents: List<CallLogItem>) {
+        val recents = filterCallLog(allRecents)
         val items = withFavorites(recents)
         showsOnlyFavorites = recents.isEmpty() && items.isNotEmpty()
+        val hasPermission = context.hasPermission(PERMISSION_READ_CALL_LOG)
+        val isFilteredOut = recents.isEmpty() && allRecents.isNotEmpty()
+        updateFilters()
         binding.apply {
+            recentsPlaceholder.text = context.getString(
+                when {
+                    isFilteredOut -> R.string.no_calls_match_filter
+                    hasPermission -> R.string.no_previous_calls
+                    else -> R.string.could_not_access_the_call_history
+                }
+            )
             showOrHidePlaceholder(recents.isEmpty())
-            recentsPlaceholder2.beGoneIf(recents.isNotEmpty() || context.hasPermission(PERMISSION_READ_CALL_LOG))
+            recentsPlaceholder2.beGoneIf(recents.isNotEmpty() || hasPermission)
+            recentsFiltersHolder.beVisibleIf(hasPermission && shownFilters.isNotEmpty())
             recentsList.beGoneIf(items.isEmpty())
         }
 
@@ -224,7 +347,9 @@ class RecentsFragment(
                     refreshItemsListener = this,
                     showOverflowMenu = true,
                     itemDelete = { deleted ->
-                        allRecentCalls = allRecentCalls.filter { it !in deleted }
+                        // a filtered group holds only some of the calls it groups, so the calls are dropped one by one
+                        val deletedIds = deleted.flatMap { it.groupedCalls.orEmpty() + it }.mapTo(HashSet()) { it.id }
+                        allRecentCalls = groupCallsByDate(keepCalls(allRecentCalls) { it.id !in deletedIds })
                     },
                     itemClick = {
                         val recentCall = it as RecentCall
@@ -290,12 +415,16 @@ class RecentsFragment(
         callback: (List<CallLogItem>) -> Unit,
     ) {
         val showFavorites = context.config.showFavoritesInCallHistory
+        val filtersByFavorites = CallLogFilter.FAVORITES in context.config.callLogFilters
         if (loadFavorites && !showFavorites) {
             favoriteContacts = emptyList()
         }
+        if (loadFavorites && !filtersByFavorites) {
+            favoriteNumbers = null
+        }
 
         // with no calls, the favorites are still loaded to be shown above the placeholder
-        val needsFavorites = loadFavorites && showFavorites
+        val needsFavorites = loadFavorites && (showFavorites || filtersByFavorites)
         if (calls.isEmpty() && !needsFavorites) {
             callback(emptyList())
             return
@@ -304,7 +433,7 @@ class RecentsFragment(
         SharedContactsLoader.getContacts(context) { contacts ->
             ensureBackgroundThread {
                 if (needsFavorites) {
-                    favoriteContacts = context.getFavoriteContacts(contacts)
+                    updateFavorites(contacts, showFavorites, filtersByFavorites)
                 }
 
                 if (calls.isEmpty()) {
@@ -326,6 +455,13 @@ class RecentsFragment(
                 )
             }
         }
+    }
+
+    // the strip and the filter are both optional, what isn't used is emptied
+    private fun updateFavorites(contacts: List<Contact>, showFavorites: Boolean, filtersByFavorites: Boolean) {
+        val favorites = context.getFavoriteContacts(contacts)
+        favoriteContacts = if (showFavorites) favorites else emptyList()
+        favoriteNumbers = if (filtersByFavorites) FavoriteNumbers.load(context, favorites) else null
     }
 
     private fun getPrivateContacts(): ArrayList<Contact> {
@@ -428,6 +564,32 @@ class RecentsFragment(
         return callLog
     }
 
+    private fun filterCallLog(callLog: List<CallLogItem>): List<CallLogItem> {
+        return if (selectedFilter.filter == CallLogFilter.ALL) {
+            callLog
+        } else {
+            groupCallsByDate(keepCalls(callLog, ::matchesSelectedFilter))
+        }
+    }
+
+    // grouped calls are kept one by one, a group shows only those that are kept
+    private fun keepCalls(callLog: List<CallLogItem>, predicate: (RecentCall) -> Boolean): List<RecentCall> {
+        return callLog.filterIsInstance<RecentCall>().mapNotNull { call ->
+            val groupedCalls = call.groupedCalls
+            if (groupedCalls.isNullOrEmpty()) {
+                return@mapNotNull call.takeIf(predicate)
+            }
+
+            val kept = groupedCalls.filter(predicate)
+            when (kept.size) {
+                0 -> null
+                groupedCalls.size -> call
+                1 -> kept.first().copy(groupedCalls = null)
+                else -> kept.first().copy(groupedCalls = kept.toMutableList())
+            }
+        }
+    }
+
     // the favorites strip scrolls with the call log, as its first item, but is left out of search results
     private fun withFavorites(callLog: List<CallLogItem>): List<CallLogItem> {
         val favorites = favoriteContacts
@@ -440,5 +602,9 @@ class RecentsFragment(
 
     private fun findContactByCall(recentCall: RecentCall): Contact? {
         return (activity as MainActivity).cachedContacts.find { it.name == recentCall.name && it.doesHavePhoneNumber(recentCall.phoneNumber) }
+    }
+
+    companion object {
+        private const val FILTER_STROKE_ALPHA = 0.4f
     }
 }

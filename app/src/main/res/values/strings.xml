@@ -98,6 +98,17 @@
     <string name="show_favorites_in_call_history">Show favorites at the top of the call history</string>
     <string name="show_favorites">Show favorites</string>
     <string name="hide_favorites">Hide favorites</string>
+    <string name="all_calls">All</string>
+    <string name="missed_calls">Missed</string>
+    <string name="incoming_calls">Incoming</string>
+    <string name="outgoing_calls">Outgoing</string>
+    <string name="not_contacts">Not contacts</string>
+    <string name="declined_calls">Declined</string>
+    <string name="hidden_numbers">Hidden numbers</string>
+    <string name="filter_by_sim">By SIM card</string>
+    <string name="call_log_filters">Call history filters</string>
+    <string name="call_log_filters_hint">\"All\" is added first. The SIM card filters are shown only with several SIM cards.</string>
+    <string name="no_calls_match_filter">No calls match this filter</string>
     <string name="show_contact_accounts">Show contact accounts in the lists</string>
     <string name="larger_contact_photos">Larger contact photos in the lists</string>
     <string name="ignore_name_prefixes_in_sorting">Ignore name prefixes like \"Dr\" when sorting by full name</string>

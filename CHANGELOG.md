@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Format the number while dialing ([#104])
 - Option to show favorites at the top of the call history ([#882])
 - Fold away the favorites at the top of the call history by tapping their title
+- Filters above the call history: missed, incoming, outgoing, declined, contacts, not contacts, favorites, hidden numbers and one per SIM card, chosen in the settings
 - Option to name numbers that aren't contacts, stored only in the app ([#858])
 - Missed call notification from the app, with the time and the SIM that received the call, and an option to call back with the number's default SIM ([#83], [#839])
 - Option to silence an incoming call by flipping the phone face down ([#65])

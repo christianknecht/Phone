@@ -12,6 +12,7 @@ import org.fossify.phone.extensions.getPhoneAccountHandleModel
 import org.fossify.phone.extensions.putPhoneAccountHandle
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.fossify.phone.models.CallLogFilter
 import org.fossify.phone.models.SpeedDial
 import androidx.core.content.edit
 import java.util.Locale
@@ -133,6 +134,14 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(COLLAPSE_FAVORITES_IN_CALL_HISTORY, false)
         set(collapseFavoritesInCallHistory) = prefs.edit()
             .putBoolean(COLLAPSE_FAVORITES_IN_CALL_HISTORY, collapseFavoritesInCallHistory).apply()
+
+    // the filters shown above the call history, besides the one showing all calls
+    var callLogFilters: Set<CallLogFilter>
+        get() {
+            val names = prefs.getStringSet(CALL_LOG_FILTERS, null) ?: return CallLogFilter.DEFAULT_SHOWN
+            return CallLogFilter.entries.filterTo(LinkedHashSet()) { it.name in names }
+        }
+        set(callLogFilters) = prefs.edit { putStringSet(CALL_LOG_FILTERS, callLogFilters.mapTo(HashSet()) { it.name }) }
 
     var showContactAccounts: Boolean
         get() = prefs.getBoolean(SHOW_CONTACT_ACCOUNTS, false)

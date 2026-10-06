@@ -66,6 +66,17 @@
     <string name="show_favorites_in_call_history">Afficher les favoris en haut de l\'historique des appels</string>
     <string name="show_favorites">Afficher les favoris</string>
     <string name="hide_favorites">Masquer les favoris</string>
+    <string name="all_calls">Tous</string>
+    <string name="missed_calls">Manqués</string>
+    <string name="incoming_calls">Entrants</string>
+    <string name="outgoing_calls">Sortants</string>
+    <string name="not_contacts">Non-contacts</string>
+    <string name="declined_calls">Refusés</string>
+    <string name="hidden_numbers">Numéros masqués</string>
+    <string name="filter_by_sim">Par carte SIM</string>
+    <string name="call_log_filters">Filtres de l\'historique des appels</string>
+    <string name="call_log_filters_hint">« Tous » est ajouté en premier. Les filtres par carte SIM ne s\'affichent qu\'avec plusieurs cartes SIM.</string>
+    <string name="no_calls_match_filter">Aucun appel ne correspond à ce filtre</string>
     <string name="show_contact_accounts">Afficher les comptes des contacts dans les listes</string>
     <string name="larger_contact_photos">Photos des contacts plus grandes dans les listes</string>
     <string name="ignore_name_prefixes_in_sorting">Ignorer les préfixes des noms comme « Dr » dans le tri par nom complet</string>
