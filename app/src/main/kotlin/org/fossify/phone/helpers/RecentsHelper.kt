@@ -213,6 +213,18 @@ class RecentsHelper(private val context: Context) {
             context.contentResolver.query(contentUri, projection, selection, selectionParams, sortOrder)
         }
 
+        // built once instead of going through every contact for each call
+        val contactsByFirstNumberEnd = HashMap<String, Contact>()
+        contacts.forEach { contact ->
+            val firstNumber = contact.phoneNumbers.firstOrNull()?.normalizedNumber ?: return@forEach
+            if (firstNumber.length >= COMPARABLE_PHONE_NUMBER_LENGTH) {
+                contactsByFirstNumberEnd.putIfAbsent(firstNumber.takeLast(COMPARABLE_PHONE_NUMBER_LENGTH), contact)
+            }
+        }
+        val contactsByNumber by lazy { ContactsByNumberIndex(contacts) }
+        val contactsById = HashMap<Int, Contact>()
+        contacts.forEach { contactsById.putIfAbsent(it.contactId, it) }
+
         val contactsWithMultipleNumbers = contacts.filter { it.phoneNumbers.size > 1 }
         val numbersToContactIDMap = HashMap<String, Int>()
         contactsWithMultipleNumbers.forEach { contact ->
@@ -248,19 +260,12 @@ class RecentsHelper(private val context: Context) {
                     } else {
                         val normalizedNumber = number.normalizePhoneNumber()
                         if (normalizedNumber!!.length >= COMPARABLE_PHONE_NUMBER_LENGTH) {
-                            name = contacts.filter { it.phoneNumbers.isNotEmpty() }.firstOrNull { contact ->
-                                val curNumber = contact.phoneNumbers.first().normalizedNumber
-                                if (curNumber.length >= COMPARABLE_PHONE_NUMBER_LENGTH) {
-                                    if (curNumber.substring(curNumber.length - COMPARABLE_PHONE_NUMBER_LENGTH) == normalizedNumber.substring(
-                                            normalizedNumber.length - COMPARABLE_PHONE_NUMBER_LENGTH
-                                        )
-                                    ) {
-                                        contactsNumbersMap[number] = contact.getNameToDisplay()
-                                        return@firstOrNull true
-                                    }
-                                }
-                                false
-                            }?.name ?: number
+                            val numberEnd = normalizedNumber.takeLast(COMPARABLE_PHONE_NUMBER_LENGTH)
+                            val contact = contactsByFirstNumberEnd[numberEnd]
+                            if (contact != null) {
+                                contactsNumbersMap[number] = contact.getNameToDisplay()
+                            }
+                            name = contact?.name ?: number
                         }
                     }
                 }
@@ -274,11 +279,9 @@ class RecentsHelper(private val context: Context) {
                     if (contactPhotosMap.containsKey(number)) {
                         photoUri = contactPhotosMap[number]!!
                     } else {
-                        val contact = contacts.firstOrNull { it.doesHavePhoneNumber(number) }
-                        if (contact != null) {
-                            photoUri = contact.photoUri
-                            contactPhotosMap[number] = contact.photoUri
-                        }
+                        // numbers without a contact are remembered too, so they are looked up only once
+                        photoUri = contactsByNumber.findContact(number)?.photoUri.orEmpty()
+                        contactPhotosMap[number] = photoUri
                     }
                 }
 
@@ -299,7 +302,7 @@ class RecentsHelper(private val context: Context) {
                 val contactIdWithMultipleNumbers = numbersToContactIDMap[number]
                 if (contactIdWithMultipleNumbers != null) {
                     val specificPhoneNumber =
-                        contacts.firstOrNull { it.contactId == contactIdWithMultipleNumbers }?.phoneNumbers?.firstOrNull { it.value == number }
+                        contactsById[contactIdWithMultipleNumbers]?.phoneNumbers?.firstOrNull { it.value == number }
                     if (specificPhoneNumber != null) {
                         specificNumber = specificPhoneNumber.value
                         specificType = context.getPhoneNumberTypeText(specificPhoneNumber.type, specificPhoneNumber.label)

@@ -28,6 +28,7 @@ import org.fossify.phone.extensions.runAfterAnimations
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.helpers.ContactsByNumberIndex
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
@@ -320,11 +321,17 @@ class RecentsFragment(
     private fun updateNamesIfEmpty(calls: List<RecentCall>, contacts: List<Contact>, privateContacts: List<Contact>): List<RecentCall> {
         if (calls.isEmpty()) return mutableListOf()
 
-        val contactsWithNumbers = contacts.filter { it.phoneNumbers.isNotEmpty() }
+        // built once instead of going through every contact for each call
+        val contactsByFirstNumber = HashMap<String, Contact>()
+        contacts.forEach { contact ->
+            val firstNumber = contact.phoneNumbers.firstOrNull() ?: return@forEach
+            contactsByFirstNumber.putIfAbsent(firstNumber.normalizedNumber, contact)
+        }
+
         return calls.map { call ->
             if (call.phoneNumber == call.name) {
                 val privateContact = privateContacts.firstOrNull { it.doesContainPhoneNumber(call.phoneNumber) }
-                val contact = contactsWithNumbers.firstOrNull { it.phoneNumbers.first().normalizedNumber == call.phoneNumber }
+                val contact = contactsByFirstNumber[call.phoneNumber]
 
                 when {
                     privateContact != null -> withUpdatedName(call = call, name = privateContact.getNameToDisplay())
@@ -349,12 +356,13 @@ class RecentsFragment(
 
     private fun applyNumberNames(calls: List<RecentCall>, contacts: List<Contact>): List<RecentCall> {
         val getNumberName = context.getNumberNameLookup()
+        val contactsByNumber by lazy { ContactsByNumberIndex(contacts) }
         return calls.map { call ->
             val isNotContact = call.name == call.phoneNumber && !call.isUnknownNumber
             val name = if (isNotContact) getNumberName(call.phoneNumber) else null
             // a contact holding the number in any position wins, like on the call screen. Only named numbers are
             // checked, as the full comparison is too slow for the whole call history
-            val contact = if (name != null) contacts.firstOrNull { it.doesHavePhoneNumber(call.phoneNumber) } else null
+            val contact = if (name != null) contactsByNumber.findContact(call.phoneNumber) else null
             when {
                 contact != null -> withUpdatedName(call, contact.getNameToDisplay())
                 name != null -> withNumberName(call, name)
