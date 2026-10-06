@@ -38,6 +38,9 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     private var allContacts = ArrayList<Contact>()
     private var accounts: ContactAccounts? = null
 
+    // until the first load is done, a spinner is shown instead of the "no contacts" placeholder
+    private var contactsLoaded = false
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         binding = FragmentLettersLayoutBinding.bind(FragmentFavoritesBinding.bind(this).favoritesFragment)
@@ -82,6 +85,8 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     }
 
     private fun gotContacts(contacts: ArrayList<Contact>) {
+        contactsLoaded = true
+        binding.fragmentProgressIndicator.hide()
         setupLetterFastScroller(contacts)
         binding.apply {
             if (contacts.isEmpty()) {
@@ -167,7 +172,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     }
 
     override fun onSearchClosed() {
-        binding.fragmentPlaceholder.beVisibleIf(allContacts.isEmpty())
+        binding.fragmentPlaceholder.beVisibleIf(contactsLoaded && allContacts.isEmpty())
         (binding.fragmentList.adapter as? ContactsAdapter)?.updateItems(allContacts)
         setupLetterFastScroller(allContacts)
     }
@@ -180,7 +185,7 @@ class FavoritesFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
             it.name.startsWith(fixedText, true)
         }.toMutableList() as ArrayList<Contact>
 
-        binding.fragmentPlaceholder.beVisibleIf(contacts.isEmpty())
+        binding.fragmentPlaceholder.beVisibleIf(contactsLoaded && contacts.isEmpty())
         (binding.fragmentList.adapter as? ContactsAdapter)?.updateItems(contacts, fixedText)
         setupLetterFastScroller(contacts)
     }

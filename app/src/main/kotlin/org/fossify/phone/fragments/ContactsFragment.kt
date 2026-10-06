@@ -42,6 +42,9 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
     private var allContacts = ArrayList<Contact>()
     private var accounts: ContactAccounts? = null
 
+    // until the first load is done, a spinner is shown instead of the "no contacts" placeholder
+    private var contactsLoaded = false
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         binding = FragmentLettersLayoutBinding.bind(FragmentContactsBinding.bind(this).contactsFragment)
@@ -115,6 +118,8 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
     }
 
     private fun gotContacts(contacts: ArrayList<Contact>) {
+        contactsLoaded = true
+        binding.fragmentProgressIndicator.hide()
         setupLetterFastScroller(contacts)
         if (contacts.isEmpty()) {
             binding.apply {
@@ -165,7 +170,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
     }
 
     override fun onSearchClosed() {
-        binding.fragmentPlaceholder.beVisibleIf(allContacts.isEmpty())
+        binding.fragmentPlaceholder.beVisibleIf(contactsLoaded && allContacts.isEmpty())
         (binding.fragmentList.adapter as? ContactsAdapter)?.updateItems(allContacts)
         setupLetterFastScroller(allContacts)
     }
@@ -191,7 +196,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
             !getProperText(nameToDisplay, shouldNormalize).startsWith(fixedText, true) && !nameToDisplay.contains(fixedText, true)
         }
 
-        binding.fragmentPlaceholder.beVisibleIf(filtered.isEmpty())
+        binding.fragmentPlaceholder.beVisibleIf(contactsLoaded && filtered.isEmpty())
         (binding.fragmentList.adapter as? ContactsAdapter)?.updateItems(filtered, fixedText)
         setupLetterFastScroller(filtered)
     }
