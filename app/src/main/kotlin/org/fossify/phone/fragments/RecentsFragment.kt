@@ -51,6 +51,12 @@ class RecentsFragment(
     private var searchQuery: String? = null
     private var recentsHelper = RecentsHelper(context)
 
+    // a refresh asked while one is running is done once it ends, instead of both reading the whole call history at the
+    // same time. Main thread only
+    private var isRefreshing = false
+    private var isRefreshPending = false
+    private var isPendingRefreshInvalidating = false
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         binding = FragmentRecentsBinding.bind(this)
@@ -94,14 +100,33 @@ class RecentsFragment(
     }
 
     override fun refreshItems(invalidate: Boolean, callback: (() -> Unit)?) {
+        if (isRefreshing) {
+            isRefreshPending = true
+            isPendingRefreshInvalidating = isPendingRefreshInvalidating || invalidate
+            return
+        }
+
         if (invalidate) {
             allRecentCalls = emptyList()
         }
 
+        isRefreshing = true
         refreshCallLog(loadAll = false) {
             binding.recentsList.runAfterAnimations {
-                refreshCallLog(loadAll = true)
+                refreshCallLog(loadAll = true) {
+                    post { onRefreshDone() }
+                }
             }
+        }
+    }
+
+    private fun onRefreshDone() {
+        isRefreshing = false
+        if (isRefreshPending) {
+            val invalidate = isPendingRefreshInvalidating
+            isRefreshPending = false
+            isPendingRefreshInvalidating = false
+            refreshItems(invalidate)
         }
     }
 
