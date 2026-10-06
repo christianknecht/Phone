@@ -1,13 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/recents_favorites_list"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:clipToPadding="false"
-    android:orientation="horizontal"
-    android:overScrollMode="never"
-    android:paddingHorizontal="@dimen/small_margin"
-    android:paddingTop="@dimen/normal_margin"
-    android:scrollbars="none"
-    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+    android:orientation="vertical">
+
+    <!-- tapping the header folds the strip away, see Config.collapseFavoritesInCallHistory -->
+    <LinearLayout
+        android:id="@+id/recents_favorites_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:layout_marginTop="@dimen/small_margin"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/medium_margin"
+        android:paddingVertical="@dimen/small_margin">
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/recents_favorites_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/favorites"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/recents_favorites_chevron"
+            android:layout_width="@dimen/list_icon_size_small"
+            android:layout_height="@dimen/list_icon_size_small"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_chevron_up_vector" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recents_favorites_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:overScrollMode="never"
+        android:paddingHorizontal="@dimen/small_margin"
+        android:scrollbars="none"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+</LinearLayout>

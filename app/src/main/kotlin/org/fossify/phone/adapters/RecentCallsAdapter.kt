@@ -737,10 +737,32 @@ class RecentCallsAdapter(
 
         init {
             binding.recentsFavoritesList.adapter = favoritesAdapter
+            binding.recentsFavoritesHeader.setOnClickListener {
+                finishActMode()
+                activity.config.collapseFavoritesInCallHistory = !activity.config.collapseFavoritesInCallHistory
+                updateCollapsed()
+            }
         }
 
         fun bind(favorites: CallLogItem.Favorites) {
+            binding.recentsFavoritesTitle.apply {
+                setTextColor(properPrimaryColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * HEADER_TEXT_SIZE_RATIO)
+            }
+            binding.recentsFavoritesChevron.applyColorFilter(properPrimaryColor)
+            updateCollapsed()
             favoritesAdapter.updateItems(favorites.contacts, textColor, fontSize)
+        }
+
+        private fun updateCollapsed() {
+            val isCollapsed = activity.config.collapseFavoritesInCallHistory
+            binding.recentsFavoritesList.beVisibleIf(!isCollapsed)
+            binding.recentsFavoritesChevron.setImageResource(
+                if (isCollapsed) R.drawable.ic_chevron_down_vector else R.drawable.ic_chevron_up_vector
+            )
+            binding.recentsFavoritesHeader.contentDescription = activity.getString(
+                if (isCollapsed) R.string.show_favorites else R.string.hide_favorites
+            )
         }
     }
 
@@ -748,6 +770,9 @@ class RecentCallsAdapter(
         private const val VIEW_TYPE_DATE = 0
         private const val VIEW_TYPE_CALL = 1
         private const val VIEW_TYPE_FAVORITES = 2
+
+        // like the date headers
+        private const val HEADER_TEXT_SIZE_RATIO = 0.76f
     }
 }
 

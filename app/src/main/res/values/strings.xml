@@ -96,6 +96,8 @@
     <!-- Settings -->
     <string name="group_subsequent_calls">Group subsequent calls with the same number at the call log</string>
     <string name="show_favorites_in_call_history">Show favorites at the top of the call history</string>
+    <string name="show_favorites">Show favorites</string>
+    <string name="hide_favorites">Hide favorites</string>
     <string name="show_contact_accounts">Show contact accounts in the lists</string>
     <string name="larger_contact_photos">Larger contact photos in the lists</string>
     <string name="ignore_name_prefixes_in_sorting">Ignore name prefixes like \"Dr\" when sorting by full name</string>

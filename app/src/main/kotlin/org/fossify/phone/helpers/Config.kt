@@ -128,6 +128,12 @@ class Config(context: Context) : BaseConfig(context) {
         set(showFavoritesInCallHistory) = prefs.edit()
             .putBoolean(SHOW_FAVORITES_IN_CALL_HISTORY, showFavoritesInCallHistory).apply()
 
+    // only the strip folds away, its header stays to unfold it
+    var collapseFavoritesInCallHistory: Boolean
+        get() = prefs.getBoolean(COLLAPSE_FAVORITES_IN_CALL_HISTORY, false)
+        set(collapseFavoritesInCallHistory) = prefs.edit()
+            .putBoolean(COLLAPSE_FAVORITES_IN_CALL_HISTORY, collapseFavoritesInCallHistory).apply()
+
     var showContactAccounts: Boolean
         get() = prefs.getBoolean(SHOW_CONTACT_ACCOUNTS, false)
         set(showContactAccounts) = prefs.edit().putBoolean(SHOW_CONTACT_ACCOUNTS, showContactAccounts).apply()
