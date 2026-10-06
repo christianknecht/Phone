@@ -488,6 +488,14 @@
                     android:layout_height="wrap_content"
                     android:text="@string/per_sim_ringtones" />
 
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_per_sim_ringtones_dnd_hint"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_per_sim_ringtones"
+                    android:text="@string/per_sim_ringtones_dnd_hint" />
+
             </RelativeLayout>
 
             <RelativeLayout

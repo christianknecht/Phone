@@ -3,6 +3,7 @@ package org.fossify.phone.extensions
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.KeyguardManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Context.KEYGUARD_SERVICE
 import android.content.Intent
@@ -80,16 +81,16 @@ fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
  * is null there). Which ringtone to play (per SIM) is decided later, in the InCallService, where the
  * handle is available.
  *
- * Do Not Disturb: once we silence it, the system ringer no longer applies the DND rules for us, so we
- * only take over when DND is off or lets this caller through. In every other case the system ringer
- * is left alone and applies DND (priority contacts, repeat callers...) exactly as without this feature.
+ * Do Not Disturb: only when DND is off. The system ringer is where DND is applied (priority contacts,
+ * repeat callers...), and DND mutes an app's own ringtone even for a caller it lets ring, so during DND
+ * the system ringer stays in charge, exactly as without this feature, with the default ringtone.
  */
 fun Context.shouldPlayCustomRingtone(number: String?): Boolean {
     if (!isQPlus() || !config.perSimRingtonesEnabled) {
         return false
     }
 
-    if (!notificationManager.isCallAllowedByDnd(number, hasPermission(PERMISSION_READ_CONTACTS))) {
+    if (notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
         return false
     }
 

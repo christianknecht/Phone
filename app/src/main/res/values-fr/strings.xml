@@ -100,4 +100,7 @@
         <item quantity="many">%d appels manqués</item>
         <item quantity="other">%d appels manqués</item>
     </plurals>
+    <string name="per_sim_ringtones">Utiliser une sonnerie différente par SIM</string>
+    <string name="per_sim_ringtones_dnd_hint">Pas utilisé en mode Ne pas déranger : les appels autorisés sonnent avec la sonnerie par défaut</string>
+    <string name="sim_ringtones">Sonneries des SIM</string>
 </resources>

@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mute and hold buttons in the ongoing call notification, which uses the system call style on Android 12 and later, with the call shown in the status bar ([#173])
 
 ### Fixed
-- Fixed per-SIM ringtones ringing through Do Not Disturb
+- Fixed per-SIM ringtones ringing through Do Not Disturb, and calls that Do Not Disturb allows not ringing at all. During Do Not Disturb the default ringtone is used instead of the SIM ringtone
 - Faster caller name on the call screen and call notification, the number and SIM are shown right away
 - A number opened from a link and the last called number show in the dialpad without waiting for the contacts
 - Fixed the SIM selector not showing for calls started from a car or a headset ([#473])
