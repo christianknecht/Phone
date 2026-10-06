@@ -143,6 +143,12 @@ class Config(context: Context) : BaseConfig(context) {
         }
         set(largerContactPhotos) = prefs.edit().putBoolean(LARGER_CONTACT_PHOTOS, largerContactPhotos).apply()
 
+    // with the full name sorting, sorts "Dr Henning Meyer" among the H instead of the D
+    var ignoreNamePrefixesInSorting: Boolean
+        get() = prefs.getBoolean(IGNORE_NAME_PREFIXES_IN_SORTING, false)
+        set(ignoreNamePrefixesInSorting) = prefs.edit()
+            .putBoolean(IGNORE_NAME_PREFIXES_IN_SORTING, ignoreNamePrefixesInSorting).apply()
+
     var openDialPadAtLaunch: Boolean
         get() = prefs.getBoolean(OPEN_DIAL_PAD_AT_LAUNCH, false)
         set(openDialPad) = prefs.edit().putBoolean(OPEN_DIAL_PAD_AT_LAUNCH, openDialPad).apply()

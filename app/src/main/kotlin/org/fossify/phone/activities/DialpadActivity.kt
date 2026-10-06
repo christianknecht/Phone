@@ -63,6 +63,7 @@ import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.extensions.stripPhoneFormatting
+import org.fossify.phone.helpers.ContactSorting
 import org.fossify.phone.helpers.DIALPAD_TONE_LENGTH_MS
 import org.fossify.phone.helpers.PhoneNumberFormattingWatcher
 import org.fossify.phone.helpers.RecentsHelper
@@ -239,7 +240,7 @@ class DialpadActivity : SimpleActivity() {
                 val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
                 if (privateContacts.isNotEmpty()) {
                     contacts.addAll(privateContacts)
-                    contacts.sort()
+                    ContactSorting.sort(this, contacts)
                 }
 
                 val distinctContacts = distinctByAggregatedContact(contacts)

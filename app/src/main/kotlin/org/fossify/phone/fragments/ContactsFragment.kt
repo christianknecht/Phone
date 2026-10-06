@@ -33,6 +33,7 @@ import org.fossify.phone.extensions.setupWithContacts
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.helpers.ContactAccounts
 import org.fossify.phone.helpers.ContactAccountsHelper
+import org.fossify.phone.helpers.ContactSorting
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RefreshItemsListener
 
@@ -102,7 +103,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
                 val privateContacts = MyContactsContentProvider.getContacts(context, privateCursor)
                 if (privateContacts.isNotEmpty()) {
                     allContacts.addAll(privateContacts)
-                    allContacts.sort()
+                    ContactSorting.sort(context, allContacts)
                 }
             }
             allContacts = context.distinctByAggregatedContact(allContacts)

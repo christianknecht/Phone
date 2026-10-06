@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Select all and deselect all in the contact sources filter
 - Option to show the accounts of each contact in the contacts and favorites lists
 - Option to show larger contact photos in the contacts, favorites and call history lists
+- Option to ignore name prefixes like "Dr" when sorting contacts by full name
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb

@@ -17,6 +17,7 @@ import org.fossify.phone.databinding.ActivityManageSpeedDialBinding
 import org.fossify.phone.dialogs.SelectContactDialog
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.distinctByAggregatedContact
+import org.fossify.phone.helpers.ContactSorting
 import org.fossify.phone.helpers.SharedContactsLoader
 import org.fossify.phone.interfaces.RemoveSpeedDialListener
 import org.fossify.phone.models.SpeedDial
@@ -46,7 +47,7 @@ class ManageSpeedDialActivity : SimpleActivity(), RemoveSpeedDialListener {
             val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
             allContacts.addAll(privateContacts)
-            allContacts.sort()
+            ContactSorting.sort(this, allContacts)
         }
 
         updateTextColors(binding.manageSpeedDialScrollview)

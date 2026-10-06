@@ -93,6 +93,7 @@
     <string name="show_favorites_in_call_history">Show favorites at the top of the call history</string>
     <string name="show_contact_accounts">Show contact accounts in the lists</string>
     <string name="larger_contact_photos">Larger contact photos in the lists</string>
+    <string name="ignore_name_prefixes_in_sorting">Ignore name prefixes like \"Dr\" when sorting by full name</string>
     <!-- shown after the first account icons of a contact, when it has more -->
     <string name="more_contact_accounts" translatable="false">+%d</string>
     <string name="open_dialpad_by_default">Open the dialpad by default when the app opens</string>

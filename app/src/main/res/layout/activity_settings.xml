@@ -183,6 +183,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_ignore_name_prefixes_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_ignore_name_prefixes"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ignore_name_prefixes_in_sorting" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_show_contact_accounts_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"

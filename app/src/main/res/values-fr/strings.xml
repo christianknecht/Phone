@@ -62,6 +62,7 @@
     <string name="show_favorites_in_call_history">Afficher les favoris en haut de l\'historique des appels</string>
     <string name="show_contact_accounts">Afficher les comptes des contacts dans les listes</string>
     <string name="larger_contact_photos">Photos des contacts plus grandes dans les listes</string>
+    <string name="ignore_name_prefixes_in_sorting">Ignorer les préfixes des noms comme « Dr » dans le tri par nom complet</string>
     <string name="open_dialpad_by_default">Ouvrir le pavé numérique par défaut à l\'ouverture de l\'application</string>
     <string name="disable_proximity_sensor">Désactiver le capteur de proximité pendant les appels</string>
     <string name="disable_swipe_to_answer">Remplacer le balayage pour répondre aux appels entrants par un clic</string>

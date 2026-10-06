@@ -9,6 +9,7 @@ import android.provider.ContactsContract
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.helpers.ContactsHelper
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.extensions.config
 import java.util.Locale
 
 /**
@@ -38,6 +39,7 @@ object SharedContactsLoader {
         val sorting: Int,
         val startNameWithSurname: Boolean,
         val mergeDuplicateContacts: Boolean,
+        val ignoreNamePrefixes: Boolean,
     )
 
     private class CachedContacts(val contacts: List<Contact>, val loadedAt: Long)
@@ -69,7 +71,8 @@ object SharedContactsLoader {
             ignoredContactSources = ignoredSources,
             sorting = baseConfig.sorting,
             startNameWithSurname = baseConfig.startNameWithSurname,
-            mergeDuplicateContacts = baseConfig.mergeDuplicateContacts
+            mergeDuplicateContacts = baseConfig.mergeDuplicateContacts,
+            ignoreNamePrefixes = context.config.ignoreNamePrefixesInSorting
         )
         observeContacts(context)
         val startLoad = { load(context, request) }
@@ -117,6 +120,13 @@ object SharedContactsLoader {
                 } else {
                     withNumbers
                 }
+            }.let { sorted ->
+                // commons sorted them with the prefixes
+                if (ContactSorting.ignoresNamePrefixes(context)) {
+                    ArrayList(sorted).also { ContactSorting.sort(context, it) }
+                } else {
+                    sorted
+                }
             }
             val (callbacks, loadsToStart) = synchronized(lock) {
                 if (isObservingContacts && contactsVersion == versionAtStart) {
@@ -144,6 +154,7 @@ object SharedContactsLoader {
         val merged = contacts.groupBy { it.getNameToDisplay().lowercase(Locale.getDefault()) }.values.map { sameName ->
             sameName.maxBy { it.getStringToCompare().length }
         }
+        // sorted like commons does, the prefixes are dealt with by the caller
         return ArrayList(merged).apply { sort() }
     }
 

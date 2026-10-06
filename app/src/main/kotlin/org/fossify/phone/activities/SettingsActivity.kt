@@ -129,6 +129,7 @@ class SettingsActivity : SimpleActivity() {
         setupGroupSubsequentCalls()
         setupShowFavoritesInCallHistory()
         setupStartNameWithSurname()
+        setupIgnoreNamePrefixes()
         setupShowContactAccounts()
         setupLargerContactPhotos()
         setupFormatPhoneNumbers()
@@ -348,6 +349,16 @@ class SettingsActivity : SimpleActivity() {
             settingsStartNameWithSurnameHolder.setOnClickListener {
                 settingsStartNameWithSurname.toggle()
                 config.startNameWithSurname = settingsStartNameWithSurname.isChecked
+            }
+        }
+    }
+
+    private fun setupIgnoreNamePrefixes() {
+        binding.apply {
+            settingsIgnoreNamePrefixes.isChecked = config.ignoreNamePrefixesInSorting
+            settingsIgnoreNamePrefixesHolder.setOnClickListener {
+                settingsIgnoreNamePrefixes.toggle()
+                config.ignoreNamePrefixesInSorting = settingsIgnoreNamePrefixes.isChecked
             }
         }
     }

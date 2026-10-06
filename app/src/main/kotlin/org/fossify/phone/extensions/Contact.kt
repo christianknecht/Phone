@@ -8,6 +8,7 @@ import org.fossify.commons.helpers.Converters
 import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.SMT_PRIVATE
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.helpers.ContactSorting
 
 /**
  * Device contacts are loaded per raw contact, so a single aggregated contact shows up several times when its
@@ -48,7 +49,7 @@ fun Context.getFavoriteContacts(contacts: List<Contact>): ArrayList<Contact> {
         }
         if (privateContacts.isNotEmpty()) {
             allContacts.addAll(privateContacts)
-            allContacts.sort()
+            ContactSorting.sort(this, allContacts)
         }
     }
 
