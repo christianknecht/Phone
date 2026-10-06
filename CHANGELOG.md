@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to show the accounts of each contact in the contacts and favorites lists
 - Option to show larger contact photos in the contacts, favorites and call history lists
 - Option to ignore name prefixes like "Dr" when sorting contacts by full name
+- Mute and hold buttons in the ongoing call notification, which uses the system call style on Android 12 and later, with the call shown in the status bar ([#173])
 
 ### Fixed
 - Fixed per-SIM ringtones ringing through Do Not Disturb
@@ -301,6 +302,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#696]: https://github.com/FossifyOrg/Phone/issues/696
 [#839]: https://github.com/FossifyOrg/Phone/issues/839
 [#858]: https://github.com/FossifyOrg/Phone/issues/858
+[#173]: https://github.com/FossifyOrg/Phone/issues/173
 [#882]: https://github.com/FossifyOrg/Phone/issues/882
 
 [Unreleased]: https://github.com/FossifyOrg/Phone/compare/1.11.1...HEAD

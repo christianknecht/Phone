@@ -569,7 +569,11 @@ class CallActivity : SimpleActivity() {
     }
 
     private fun toggleHold() {
-        val isOnHold = CallManager.toggleHold()
+        updateHoldButton(CallManager.toggleHold())
+    }
+
+    // also called on state changes: the call can be put on hold from the notification
+    private fun updateHoldButton(isOnHold: Boolean) {
         toggleButtonColor(binding.callToggleHold, isOnHold)
         binding.callToggleHold.contentDescription = getString(if (isOnHold) R.string.resume_call else R.string.hold_call)
         binding.holdStatusLabel.beInvisibleIf(!isOnHold)
@@ -706,6 +710,7 @@ class CallActivity : SimpleActivity() {
             val isSingleCallActionsEnabled = !isCallEnded && (state == Call.STATE_ACTIVE || state == Call.STATE_DISCONNECTED
                 || state == Call.STATE_DISCONNECTING || state == Call.STATE_HOLDING)
             setActionButtonEnabled(binding.callToggleHold, isSingleCallActionsEnabled)
+            updateHoldButton(state == Call.STATE_HOLDING)
             setActionButtonEnabled(binding.callAdd, isSingleCallActionsEnabled)
         } else if (phoneState is TwoCalls) {
             updateCallState(phoneState.active)

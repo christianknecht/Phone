@@ -52,6 +52,11 @@
     <string name="hold_call">Hold call</string>
     <string name="resume_call">Resume call</string>
     <string name="call_on_hold">On Hold</string>
+    <!-- Short labels of the buttons of the ongoing call notification -->
+    <string name="notification_mute">Mute</string>
+    <string name="notification_unmute">Unmute</string>
+    <string name="notification_hold">Hold</string>
+    <string name="notification_resume">Resume</string>
     <string name="call_swap">Swap calls</string>
     <string name="call_merge">Merge calls</string>
     <string name="call_split">Split call</string>

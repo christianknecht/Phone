@@ -174,6 +174,12 @@ class CallManager {
             return !isOnHold
         }
 
+        fun isMuted() = getCallAudioState()?.isMuted == true
+
+        fun toggleMute() {
+            inCallService?.setMuted(!isMuted())
+        }
+
         fun swap() {
             if (calls.size > 1) {
                 calls.find { it.getStateCompat() == Call.STATE_HOLDING }?.unhold()

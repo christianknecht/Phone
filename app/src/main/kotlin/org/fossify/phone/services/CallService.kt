@@ -13,6 +13,7 @@ import org.fossify.phone.activities.CallActivity
 import org.fossify.phone.extensions.audioManager
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getStateCompat
+import org.fossify.phone.extensions.hasCapability
 import org.fossify.phone.extensions.isOutgoing
 import org.fossify.phone.extensions.keyguardManager
 import org.fossify.phone.extensions.powerManager
@@ -31,9 +32,16 @@ import org.fossify.phone.models.Events
 import org.greenrobot.eventbus.EventBus
 
 class CallService : InCallService() {
-    private val callNotificationManager by lazy { CallNotificationManager(this) }
+    private val callNotificationManager by lazy { CallNotificationManager(this, this) }
     private val ringtoneHelper by lazy { RingtoneHelper(this) }
     private val flipToSilenceDetector by lazy { FlipToSilenceDetector(this) { silenceRinging() } }
+
+    // the notification shows a mute or unmute button
+    private var isNotificationMuted = false
+
+    // the notification shows a hold button only for calls that can be put on hold, which Telecom tells after the call
+    // became active
+    private var isNotificationHoldable = false
 
     // ringing calls the user already silenced, so flipping the phone again doesn't re-arm the detector
     private val silencedCalls = mutableSetOf<Call>()
@@ -41,17 +49,24 @@ class CallService : InCallService() {
     // a caller added to or renamed in the contacts during a call is shown on the call screen and notification
     private val callContactsObserver by lazy {
         CallContactsObserver(applicationContext) {
-            // the notification of a call ending is already cancelled, don't post it again
-            val state = CallManager.getState()
-            val isEnding = state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING
-            if (CallManager.getPhoneState() != NoCall && !isEnding) {
-                callNotificationManager.setupNotification(isRefresh = true)
+            if (callNotificationManager.refreshForCurrentCall()) {
                 CallManager.onCallContactsChanged()
             }
         }
     }
 
     private val callListener = object : Call.Callback() {
+        override fun onDetailsChanged(call: Call, details: Call.Details) {
+            super.onDetailsChanged(call, details)
+            val isHoldable = call.hasCapability(Call.Details.CAPABILITY_HOLD)
+            // not while ringing: there is no hold button yet, and the notification must keep its priority
+            val isRinging = call.getStateCompat() == Call.STATE_RINGING
+            if (call == CallManager.getPrimaryCall() && !isRinging && isHoldable != isNotificationHoldable) {
+                isNotificationHoldable = isHoldable
+                callNotificationManager.refreshForCurrentCall()
+            }
+        }
+
         override fun onStateChanged(call: Call, state: Int) {
             super.onStateChanged(call, state)
             if (state != Call.STATE_RINGING) {
@@ -199,6 +214,10 @@ class CallService : InCallService() {
         super.onCallAudioStateChanged(audioState)
         if (audioState != null) {
             CallManager.onAudioStateChanged(audioState)
+            if (audioState.isMuted != isNotificationMuted) {
+                isNotificationMuted = audioState.isMuted
+                callNotificationManager.refreshForCurrentCall()
+            }
         }
     }
 
@@ -218,4 +237,16 @@ class CallService : InCallService() {
         callContactsObserver.stop()
         clearCallContacts()
     }
+}
+
+// Updates the notification of the current call without alerting, returns whether there is one
+private fun CallNotificationManager.refreshForCurrentCall(): Boolean {
+    // the notification of a call ending is already cancelled, don't post it again
+    val state = CallManager.getState()
+    val isEnding = state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING
+    if (CallManager.getPhoneState() == NoCall || isEnding) {
+        return false
+    }
+    setupNotification(isRefresh = true)
+    return true
 }
