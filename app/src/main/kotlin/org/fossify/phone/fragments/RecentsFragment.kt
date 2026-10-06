@@ -266,6 +266,12 @@ class RecentsFragment(
     }
 
     override fun onSearchQueryChanged(text: String) {
+        // selecting a tab or closing the search sends an empty query: show the whole call log, favorites included
+        if (text.isEmpty()) {
+            onSearchClosed()
+            return
+        }
+
         searchQuery = text
         updateSearchResult()
     }
