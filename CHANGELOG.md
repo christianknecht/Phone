@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed contacts of hidden sources still showing when another account uses the same name (e.g. the same email address)
 - A loading indicator shows while the contacts load, instead of "No contacts found"
 - The call history no longer keeps the phone busy for many seconds after opening the app with many contacts and calls
+- Opening the app loads the contacts once instead of up to four times
 
 ## [1.11.1] - 2026-02-01
 ### Changed
